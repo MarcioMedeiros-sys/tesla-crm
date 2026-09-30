@@ -1,0 +1,916 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tesla Energia Solar - CRM</title>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;display:flex;min-height:100vh}
+/* LOGIN */
+#tela-login{position:fixed;inset:0;background:#0a0a0a;display:flex;align-items:center;justify-content:center;z-index:9999}
+.login-box{background:#1a1a2e;border:1px solid #f5a623;border-radius:12px;padding:40px;width:340px;text-align:center}
+.login-box h1{color:#f5a623;font-size:1.6rem;margin-bottom:4px}
+.login-box p{color:#aaa;font-size:.85rem;margin-bottom:24px}
+.login-box input{width:100%;padding:12px;background:#0d0d1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:1rem;margin-bottom:12px}
+.login-box button{width:100%;padding:12px;background:#f5a623;border:none;border-radius:8px;font-size:1rem;font-weight:700;cursor:pointer;color:#000}
+.login-box .erro{color:#ff6b6b;font-size:.85rem;margin-top:8px}
+/* SIDEBAR */
+#sidebar{width:220px;background:#111;border-right:1px solid #222;display:flex;flex-direction:column;flex-shrink:0}
+.logo-side{padding:20px 16px;border-bottom:1px solid #222}
+.logo-side h2{color:#f5a623;font-size:1.1rem}
+.logo-side p{color:#666;font-size:.75rem}
+nav a{display:flex;align-items:center;gap:10px;padding:12px 16px;color:#aaa;text-decoration:none;font-size:.9rem;transition:.2s;cursor:pointer}
+nav a:hover,nav a.ativo{background:#1a1a1a;color:#f5a623;border-left:3px solid #f5a623}
+nav a span.ic{font-size:1.1rem}
+.sair-btn{margin-top:auto;padding:16px;border-top:1px solid #222}
+.sair-btn button{width:100%;padding:8px;background:transparent;border:1px solid #444;border-radius:6px;color:#888;cursor:pointer;font-size:.85rem}
+/* MAIN */
+#main{flex:1;display:flex;flex-direction:column;overflow:hidden}
+.topbar{background:#111;border-bottom:1px solid #222;padding:14px 24px;display:flex;align-items:center;justify-content:space-between}
+.topbar h1{font-size:1.2rem;color:#f5a623}
+.topbar .info{color:#666;font-size:.8rem}
+.conteudo{flex:1;overflow-y:auto;padding:24px}
+/* SEÇÕES */
+.secao{display:none}
+.secao.ativa{display:block}
+/* CARDS DASHBOARD */
+.cards-dash{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:16px;margin-bottom:24px}
+.card-dash{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:20px;text-align:center}
+.card-dash .num{font-size:2.2rem;font-weight:700;color:#f5a623}
+.card-dash .lab{color:#888;font-size:.85rem;margin-top:4px}
+/* TABELAS */
+.tabela-wrap{background:#1a1a1a;border:1px solid #222;border-radius:10px;overflow:hidden}
+table{width:100%;border-collapse:collapse;font-size:.88rem}
+th{background:#111;padding:11px 14px;text-align:left;color:#888;font-weight:600;border-bottom:1px solid #222}
+td{padding:11px 14px;border-bottom:1px solid #1e1e1e;vertical-align:middle}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:#1f1f1f}
+.badge{display:inline-block;padding:3px 10px;border-radius:20px;font-size:.75rem;font-weight:600}
+.badge-rascunho{background:#2a2a2a;color:#aaa}
+.badge-enviada{background:#1a3a5c;color:#5ba3f5}
+.badge-aprovada{background:#1a3a1a;color:#5bf55b}
+.badge-reprovada{background:#3a1a1a;color:#f55b5b}
+/* FORMULÁRIOS */
+.form-card{background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:24px;margin-bottom:20px}
+.form-card h3{color:#f5a623;margin-bottom:18px;font-size:1rem}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{color:#aaa;font-size:.82rem;font-weight:600}
+.form-group input,.form-group select,.form-group textarea{padding:10px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.9rem}
+.form-group input:focus,.form-group select:focus,.form-group textarea:focus{outline:none;border-color:#f5a623}
+.form-group select option{background:#1a1a2e}
+.form-group textarea{resize:vertical;min-height:80px}
+/* BOTÕES */
+.btn{padding:10px 20px;border:none;border-radius:7px;cursor:pointer;font-size:.9rem;font-weight:600;transition:.2s}
+.btn-primary{background:#f5a623;color:#000}
+.btn-primary:hover{background:#e69520}
+.btn-secondary{background:#2a2a2a;color:#ccc}
+.btn-secondary:hover{background:#333}
+.btn-danger{background:#c0392b;color:#fff}
+.btn-sm{padding:5px 12px;font-size:.8rem}
+.btn-acoes{display:flex;gap:8px;margin-top:20px}
+/* LINHA CALCULO */
+.calc-box{background:#111;border:1px solid #f5a623;border-radius:8px;padding:16px;margin-top:16px;display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:12px}
+.calc-item label{color:#888;font-size:.75rem}
+.calc-item .val{color:#f5a623;font-size:1.1rem;font-weight:700}
+/* BUSCA */
+.barra-busca{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.barra-busca input{flex:1;padding:10px 14px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:.9rem}
+/* MODAL */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
+.modal-bg.aberto{display:flex}
+.modal{background:#1a1a2e;border:1px solid #333;border-radius:12px;padding:28px;width:90%;max-width:500px;max-height:85vh;overflow-y:auto}
+.modal h3{color:#f5a623;margin-bottom:18px}
+.modal-btns{display:flex;gap:10px;margin-top:20px;justify-content:flex-end}
+/* TOAST */
+#toast{position:fixed;bottom:24px;right:24px;background:#f5a623;color:#000;padding:12px 20px;border-radius:8px;font-weight:600;font-size:.9rem;display:none;z-index:9999}
+/* VAZIO */
+.vazio{text-align:center;padding:40px;color:#555}
+.vazio .ic{font-size:3rem;margin-bottom:10px}
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="tela-login">
+  <div class="login-box">
+    <h1>⚡ Tesla Energia</h1>
+    <p>Sistema de Gestão - CRM Solar</p>
+    <input type="password" id="campo-senha" placeholder="Senha de acesso" onkeydown="if(event.key==='Enter')fazerLogin()">
+    <button onclick="fazerLogin()">Entrar</button>
+    <div class="erro" id="erro-login"></div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="logo-side">
+    <h2>⚡ Tesla Energia</h2>
+    <p>CRM Solar</p>
+  </div>
+  <nav>
+    <a onclick="ir('dashboard')" id="nav-dashboard" class="ativo"><span class="ic">📊</span> Dashboard</a>
+    <a onclick="ir('clientes')" id="nav-clientes"><span class="ic">👥</span> Clientes</a>
+    <a onclick="ir('propostas')" id="nav-propostas"><span class="ic">📄</span> Propostas</a>
+    <a onclick="ir('nova-proposta')" id="nav-nova-proposta"><span class="ic">➕</span> Nova Proposta</a>
+    <a onclick="ir('equipamentos')" id="nav-equipamentos"><span class="ic">🔧</span> Equipamentos</a>
+  </nav>
+  <div class="sair-btn">
+    <button onclick="sair()">🚪 Sair</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <h1 id="titulo-secao">Dashboard</h1>
+    <span class="info" id="info-conexao">Conectando...</span>
+  </div>
+  <div class="conteudo">
+
+    <!-- DASHBOARD -->
+    <div class="secao ativa" id="sec-dashboard">
+      <div class="cards-dash">
+        <div class="card-dash"><div class="num" id="dash-clientes">-</div><div class="lab">Clientes</div></div>
+        <div class="card-dash"><div class="num" id="dash-propostas">-</div><div class="lab">Propostas</div></div>
+        <div class="card-dash"><div class="num" id="dash-aprovadas">-</div><div class="lab">Aprovadas</div></div>
+        <div class="card-dash"><div class="num" id="dash-valor">-</div><div class="lab">Valor Total (R$)</div></div>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Últimas Propostas</th><th>Cliente</th><th>Valor</th><th>Status</th></tr></thead>
+          <tbody id="dash-tabela"><tr><td colspan="4" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- CLIENTES -->
+    <div class="secao" id="sec-clientes">
+      <div class="barra-busca">
+        <input type="text" placeholder="Buscar cliente..." id="busca-cliente" oninput="filtrarClientes()">
+        <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo Cliente</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Cidade</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-clientes"><tr><td colspan="5" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PROPOSTAS -->
+    <div class="secao" id="sec-propostas">
+      <div class="barra-busca">
+        <input type="text" placeholder="Buscar proposta..." id="busca-proposta" oninput="filtrarPropostas()">
+        <button class="btn btn-primary" onclick="ir('nova-proposta')">+ Nova Proposta</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Nº</th><th>Cliente</th><th>Sistema</th><th>Valor</th><th>Status</th><th>Data</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-propostas"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- NOVA PROPOSTA -->
+    <div class="secao" id="sec-nova-proposta">
+      <div class="form-card">
+        <h3>📋 Dados do Cliente</h3>
+        <div class="form-grid">
+          <div class="form-group" style="grid-column:1/-1">
+            <label>Cliente Existente (ou preencha abaixo para criar novo)</label>
+            <select id="p-cliente-sel" onchange="selecionarCliente()">
+              <option value="">-- Selecionar cliente cadastrado --</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Nome Completo *</label><input type="text" id="p-nome" placeholder="Nome do cliente"></div>
+          <div class="form-group"><label>Telefone</label><input type="text" id="p-tel" placeholder="(84) 99999-9999"></div>
+          <div class="form-group"><label>Email</label><input type="email" id="p-email" placeholder="email@exemplo.com"></div>
+          <div class="form-group"><label>CPF / CNPJ</label><input type="text" id="p-doc"></div>
+          <div class="form-group"><label>CEP</label><input type="text" id="p-cep" maxlength="9" oninput="mascCEP(this)" onblur="buscarCEP()" onchange="buscarCEP()"></div>
+          <div class="form-group"><label>Logradouro</label><input type="text" id="p-rua"></div>
+          <div class="form-group"><label>Número</label><input type="text" id="p-num"></div>
+          <div class="form-group"><label>Bairro</label><input type="text" id="p-bairro"></div>
+          <div class="form-group"><label>Cidade</label><input type="text" id="p-cidade"></div>
+          <div class="form-group"><label>Estado</label><input type="text" id="p-estado" maxlength="2"></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>⚡ Dimensionamento do Sistema</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Consumo Médio (kWh/mês)</label><input type="number" id="p-cons" placeholder="ex: 400" oninput="calcAuto()" onchange="calcAuto()"></div>
+          <div class="form-group"><label>Tarifa (R$/kWh)</label><input type="number" id="p-tarifa" placeholder="ex: 0.85" step="0.01" oninput="calcAuto()" onchange="calcAuto()"></div>
+          <div class="form-group"><label>Irradiação (h sol/dia)</label><input type="number" id="p-irr" value="5.0" step="0.1" oninput="calcAuto()" onchange="calcAuto()"></div>
+          <div class="form-group"><label>Módulo Fotovoltaico</label><select id="p-modulo" onchange="calcAuto()"><option value="">-- Selecionar módulo --</option></select></div>
+          <div class="form-group"><label>Inversor</label><select id="p-inversor"><option value="">-- Selecionar inversor --</option></select></div>
+          <div class="form-group"><label>Qtd Módulos (calculado)</label><input type="number" id="p-nmods" placeholder="automático"></div>
+        </div>
+        <div class="calc-box">
+          <div class="calc-item"><label>Potência do Sistema</label><div class="val" id="c-kwp">-- kWp</div></div>
+          <div class="calc-item"><label>Geração Mensal Est.</label><div class="val" id="c-ger">-- kWh</div></div>
+          <div class="calc-item"><label>Economia Mensal Est.</label><div class="val" id="c-eco">R$ --</div></div>
+        </div>
+      </div>
+
+      <div class="form-card">
+        <h3>💰 Investimento</h3>
+        <div class="form-grid">
+          <div class="form-group"><label>Valor do Sistema (R$)</label><input type="number" id="p-valor" placeholder="0,00" oninput="calcFinanc()" onchange="calcFinanc()"></div>
+          <div class="form-group"><label>Desconto (R$)</label><input type="number" id="p-desc" value="0" oninput="calcFinanc()" onchange="calcFinanc()"></div>
+          <div class="form-group"><label>Valor Final (R$)</label><input type="number" id="p-final" placeholder="calculado"></div>
+          <div class="form-group"><label>Forma de Pagamento</label>
+            <select id="p-pgto">
+              <option>À vista</option>
+              <option>Financiamento BNDES</option>
+              <option>Financiamento Banco do Brasil</option>
+              <option>Financiamento Santander</option>
+              <option>Parcelado Cartão</option>
+              <option>Consórcio</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Parcelas</label><input type="number" id="p-parc" placeholder="ex: 60"></div>
+          <div class="form-group"><label>Validade (dias)</label><input type="number" id="p-valid" value="15"></div>
+          <div class="form-group"><label>Vendedor</label><input type="text" id="p-vend" value="Rodrigo"></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Observações</label><textarea id="p-obs" placeholder="Informações adicionais..."></textarea></div>
+        </div>
+        <div class="btn-acoes">
+          <button class="btn btn-primary" onclick="salvarProposta()">💾 Salvar Proposta</button>
+          <button class="btn btn-secondary" onclick="limparProposta()">🗑️ Limpar</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- EQUIPAMENTOS -->
+    <div class="secao" id="sec-equipamentos">
+      <div class="barra-busca">
+        <input type="text" placeholder="Buscar equipamento..." id="busca-equip" oninput="filtrarEquip()">
+        <button class="btn btn-primary" onclick="abrirModalEquip()">+ Novo Equipamento</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Tipo</th><th>Nome</th><th>Potência</th><th>Marca</th><th>Preço</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-equip"><tr><td colspan="6" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- MODAL CLIENTE -->
+<div class="modal-bg" id="modal-cliente">
+  <div class="modal">
+    <h3>👤 Cadastro de Cliente</h3>
+    <input type="hidden" id="mc-id">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1"><label>Nome *</label><input type="text" id="mc-nome"></div>
+      <div class="form-group"><label>Telefone</label><input type="text" id="mc-tel"></div>
+      <div class="form-group"><label>Email</label><input type="email" id="mc-email"></div>
+      <div class="form-group"><label>CPF/CNPJ</label><input type="text" id="mc-doc"></div>
+      <div class="form-group"><label>CEP</label><input type="text" id="mc-cep" maxlength="9" oninput="mascCEP(this)" onblur="buscarCEPModal()" onchange="buscarCEPModal()"></div>
+      <div class="form-group"><label>Logradouro</label><input type="text" id="mc-rua"></div>
+      <div class="form-group"><label>Número</label><input type="text" id="mc-num"></div>
+      <div class="form-group"><label>Bairro</label><input type="text" id="mc-bairro"></div>
+      <div class="form-group"><label>Cidade</label><input type="text" id="mc-cidade"></div>
+      <div class="form-group"><label>Estado</label><input type="text" id="mc-estado" maxlength="2"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarCliente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL EQUIPAMENTO -->
+<div class="modal-bg" id="modal-equip">
+  <div class="modal">
+    <h3>🔧 Equipamento</h3>
+    <input type="hidden" id="me-id">
+    <div class="form-grid">
+      <div class="form-group"><label>Tipo</label><select id="me-tipo"><option value="modulo">Módulo</option><option value="inversor">Inversor</option></select></div>
+      <div class="form-group"><label>Potência (W)</label><input type="number" id="me-pot"></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Nome / Descrição *</label><input type="text" id="me-nome"></div>
+      <div class="form-group"><label>Marca</label><input type="text" id="me-marca"></div>
+      <div class="form-group"><label>Distribuidor</label><input type="text" id="me-dist"></div>
+      <div class="form-group"><label>Preço (R$)</label><input type="number" id="me-preco" step="0.01"></div>
+    </div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-equip')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarEquip()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div id="toast"></div>
+
+<script>
+// ============================================================
+// CONFIGURAÇÕES
+// ============================================================
+const SUPABASE_URL = 'https://htmjecxvpffnebpfnasl.supabase.co';
+const SUPABASE_KEY = 'sb_publishable_rd_Xn81Ez81nPvwr0piing_cPi1ucD2';
+const SENHA_ACESSO = 'tesla2026';
+
+// ============================================================
+// INIT SUPABASE
+// ============================================================
+const { createClient } = supabase;
+const db = createClient(SUPABASE_URL, SUPABASE_KEY);
+
+// ============================================================
+// LOGIN
+// ============================================================
+function fazerLogin() {
+  const s = document.getElementById('campo-senha').value;
+  if (s === SENHA_ACESSO) {
+    document.getElementById('tela-login').style.display = 'none';
+    init();
+  } else {
+    document.getElementById('erro-login').textContent = 'Senha incorreta!';
+  }
+}
+
+function sair() {
+  document.getElementById('tela-login').style.display = 'flex';
+  document.getElementById('campo-senha').value = '';
+}
+
+// ============================================================
+// INIT
+// ============================================================
+async function init() {
+  document.getElementById('info-conexao').textContent = 'Conectando ao banco...';
+  try {
+    const { data, error } = await db.from('clientes').select('id').limit(1);
+    if (error) throw error;
+    document.getElementById('info-conexao').textContent = '✅ Banco conectado';
+  } catch(e) {
+    document.getElementById('info-conexao').textContent = '❌ Erro de conexão';
+    console.error(e);
+  }
+  await Promise.all([carregarDashboard(), carregarClientes(), carregarPropostas(), carregarEquipamentos()]);
+  popularSelectsEquip();
+  popularSelectClientes();
+}
+
+// ============================================================
+// NAVEGAÇÃO
+// ============================================================
+let secaoAtual = 'dashboard';
+const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos'};
+
+function ir(sec) {
+  document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
+  document.querySelectorAll('nav a').forEach(a => a.classList.remove('ativo'));
+  document.getElementById('sec-' + sec).classList.add('ativa');
+  document.getElementById('nav-' + sec).classList.add('ativo');
+  document.getElementById('titulo-secao').textContent = titulos[sec];
+  secaoAtual = sec;
+}
+
+// ============================================================
+// TOAST
+// ============================================================
+function toast(msg, ok=true) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.style.background = ok ? '#f5a623' : '#c0392b';
+  t.style.color = ok ? '#000' : '#fff';
+  t.style.display = 'block';
+  setTimeout(() => t.style.display = 'none', 3000);
+}
+
+// ============================================================
+// DASHBOARD
+// ============================================================
+async function carregarDashboard() {
+  const [r1, r2, r3, r4] = await Promise.all([
+    db.from('clientes').select('id', {count:'exact'}),
+    db.from('propostas').select('id', {count:'exact'}),
+    db.from('propostas').select('id', {count:'exact'}).eq('status','aprovada'),
+    db.from('propostas').select('valor_final').eq('status','aprovada'),
+  ]);
+  document.getElementById('dash-clientes').textContent = r1.count || 0;
+  document.getElementById('dash-propostas').textContent = r2.count || 0;
+  document.getElementById('dash-aprovadas').textContent = r3.count || 0;
+  const total = (r4.data||[]).reduce((s,p) => s + (p.valor_final||0), 0);
+  document.getElementById('dash-valor').textContent = total.toLocaleString('pt-BR',{minimumFractionDigits:0,maximumFractionDigits:0});
+
+  const { data: ults } = await db.from('propostas').select('numero,valor_final,status,criado_em,clientes(nome)').order('criado_em',{ascending:false}).limit(8);
+  const tb = document.getElementById('dash-tabela');
+  if (!ults || !ults.length) { tb.innerHTML = '<tr><td colspan="4" class="vazio">Nenhuma proposta ainda</td></tr>'; return; }
+  tb.innerHTML = ults.map(p => `
+    <tr>
+      <td>${p.numero||'-'}</td>
+      <td>${p.clientes?.nome||'-'}</td>
+      <td>R$ ${(p.valor_final||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td><span class="badge badge-${p.status}">${p.status}</span></td>
+    </tr>`).join('');
+}
+
+// ============================================================
+// CLIENTES
+// ============================================================
+let todosClientes = [];
+
+async function carregarClientes() {
+  const { data } = await db.from('clientes').select('*').order('nome');
+  todosClientes = data || [];
+  renderClientes(todosClientes);
+}
+
+function renderClientes(lista) {
+  const tb = document.getElementById('tabela-clientes');
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="5" class="vazio"><div class="ic">👥</div>Nenhum cliente cadastrado</td></tr>'; return; }
+  tb.innerHTML = lista.map(c => `
+    <tr>
+      <td>${c.nome}</td>
+      <td>${c.telefone||'-'}</td>
+      <td>${c.email||'-'}</td>
+      <td>${c.cidade||'-'}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="editarCliente('${c.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirCliente('${c.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarClientes() {
+  const q = document.getElementById('busca-cliente').value.toLowerCase();
+  renderClientes(todosClientes.filter(c => c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q)));
+}
+
+function abrirModalCliente(c=null) {
+  ['id','nome','tel','email','doc','cep','rua','num','bairro','cidade','estado'].forEach(f => {
+    const el = document.getElementById('mc-'+f);
+    el.value = c ? (c[{id:'id',nome:'nome',tel:'telefone',email:'email',doc:'cpf_cnpj',cep:'cep',rua:'logradouro',num:'numero',bairro:'bairro',cidade:'cidade',estado:'estado'}[f]]||'') : '';
+  });
+  document.getElementById('modal-cliente').classList.add('aberto');
+}
+
+function editarCliente(id) {
+  const c = todosClientes.find(x => x.id === id);
+  if (c) abrirModalCliente(c);
+}
+
+async function excluirCliente(id) {
+  if (!confirm('Excluir este cliente?')) return;
+  await db.from('clientes').delete().eq('id', id);
+  toast('Cliente excluído');
+  carregarClientes();
+  popularSelectClientes();
+}
+
+async function salvarCliente() {
+  const id = document.getElementById('mc-id').value;
+  const dados = {
+    nome: document.getElementById('mc-nome').value.trim(),
+    telefone: document.getElementById('mc-tel').value,
+    email: document.getElementById('mc-email').value,
+    cpf_cnpj: document.getElementById('mc-doc').value,
+    cep: document.getElementById('mc-cep').value,
+    logradouro: document.getElementById('mc-rua').value,
+    numero: document.getElementById('mc-num').value,
+    bairro: document.getElementById('mc-bairro').value,
+    cidade: document.getElementById('mc-cidade').value,
+    estado: document.getElementById('mc-estado').value,
+    atualizado_em: new Date().toISOString()
+  };
+  if (!dados.nome) { toast('Nome é obrigatório!', false); return; }
+  if (id) await db.from('clientes').update(dados).eq('id', id);
+  else await db.from('clientes').insert(dados);
+  toast('Cliente salvo!');
+  fecharModal('modal-cliente');
+  carregarClientes();
+  popularSelectClientes();
+}
+
+function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
+
+// ============================================================
+// PROPOSTAS
+// ============================================================
+let todasPropostas = [];
+
+async function carregarPropostas() {
+  const { data } = await db.from('propostas').select('*,clientes(nome)').order('criado_em',{ascending:false});
+  todasPropostas = data || [];
+  renderPropostas(todasPropostas);
+}
+
+function renderPropostas(lista) {
+  const tb = document.getElementById('tabela-propostas');
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" class="vazio"><div class="ic">📄</div>Nenhuma proposta ainda</td></tr>'; return; }
+  tb.innerHTML = lista.map(p => `
+    <tr>
+      <td>${p.numero||'-'}</td>
+      <td>${p.clientes?.nome||'-'}</td>
+      <td>${p.potencia_kwp ? p.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
+      <td>R$ ${(p.valor_final||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td><span class="badge badge-${p.status}">${p.status}</span></td>
+      <td>${new Date(p.criado_em).toLocaleDateString('pt-BR')}</td>
+      <td>
+        <button class="btn btn-primary btn-sm" onclick="gerarProposta('${p.id}')" title="Gerar PDF">📄 PDF</button>
+        ${p.clientes?.telefone ? `<button class="btn btn-sm" style="background:#25d366;color:#fff" onclick="enviarWhatsApp('${p.clientes.telefone}','${p.numero||'TES'}')" title="WhatsApp">💬</button>` : ''}
+        <select class="btn btn-sm" style="padding:4px 6px" onchange="mudarStatus('${p.id}',this.value)">
+          <option value="">Status</option>
+          <option value="rascunho">Rascunho</option>
+          <option value="enviada">Enviada</option>
+          <option value="aprovada">Aprovada</option>
+          <option value="reprovada">Reprovada</option>
+          <option value="cancelada">Cancelada</option>
+        </select>
+        <button class="btn btn-danger btn-sm" onclick="excluirProposta('${p.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarPropostas() {
+  const q = document.getElementById('busca-proposta').value.toLowerCase();
+  renderPropostas(todasPropostas.filter(p =>
+    (p.numero||'').toLowerCase().includes(q) ||
+    (p.clientes?.nome||'').toLowerCase().includes(q)
+  ));
+}
+
+// ============================================================
+// GERAR PROPOSTA PDF + WHATSAPP
+// ============================================================
+async function gerarProposta(id) {
+  const { data: p } = await db.from('propostas')
+    .select('*,clientes(*),equipamentos_modulo:modulo_id(*),equipamentos_inversor:inversor_id(*)')
+    .eq('id', id).single();
+  if (!p) { toast('Proposta não encontrada', false); return; }
+
+  const c = p.clientes || {};
+  const mod = p.equipamentos_modulo || {};
+  const inv = p.equipamentos_inversor || {};
+
+  // Montar parâmetros para a proposta
+  const params = new URLSearchParams({
+    nome: c.nome || '',
+    cpf: c.cpf_cnpj || '',
+    email: c.email || '',
+    tel: c.telefone || '',
+    cep: c.cep || '',
+    cidade: (c.cidade && c.estado) ? c.cidade+'/'+c.estado : (c.cidade||''),
+    end: [c.logradouro, c.numero, c.bairro].filter(Boolean).join(', '),
+    cons: p.consumo_kwh || '',
+    tarifa: p.tarifa || '',
+    irr: p.irradiacao || 5,
+    pot: p.potencia_kwp || '',
+    nmods: p.n_modulos || '',
+    prod: p.geracao_mensal || '',
+    modulo: mod.nome || '',
+    inversor: inv.nome || '',
+    valor: p.valor_final || '',
+    num: p.numero || '',
+    validade: (p.validade_dias || 15) + ' dias',
+    pgto: p.forma_pagamento || '',
+    parc: p.parcelas || '',
+    obs: p.observacoes || '',
+    vendedor: p.nome_vendedor || 'Rodrigo',
+  });
+
+  // Abrir proposta_tesla.html com os dados na URL
+  const url = 'proposta_tesla.html?' + params.toString();
+  window.open(url, '_blank');
+}
+
+function enviarWhatsApp(telefone, numero) {
+  const tel = telefone.replace(/\D/g,'');
+  const msg = encodeURIComponent(`Olá! Segue a proposta *${numero}* da Tesla Energia Solar. Qualquer dúvida estou à disposição! ⚡`);
+  const url = `https://wa.me/55${tel}?text=${msg}`;
+  window.open(url, '_blank');
+}
+
+async function mudarStatus(id, status) {
+  if (!status) return;
+  await db.from('propostas').update({status, atualizado_em: new Date().toISOString()}).eq('id', id);
+  toast('Status atualizado!');
+  carregarPropostas();
+  carregarDashboard();
+}
+
+async function excluirProposta(id) {
+  if (!confirm('Excluir esta proposta?')) return;
+  await db.from('propostas').delete().eq('id', id);
+  toast('Proposta excluída');
+  carregarPropostas();
+  carregarDashboard();
+}
+
+async function salvarProposta() {
+  let clienteId = document.getElementById('p-cliente-sel').value;
+
+  // Se não selecionou cliente, cria novo
+  if (!clienteId) {
+    const nomeCliente = document.getElementById('p-nome').value.trim();
+    if (!nomeCliente) { toast('Informe o nome do cliente!', false); return; }
+    const { data: novoCliente } = await db.from('clientes').insert({
+      nome: nomeCliente,
+      telefone: document.getElementById('p-tel').value,
+      email: document.getElementById('p-email').value,
+      cpf_cnpj: document.getElementById('p-doc').value,
+      cep: document.getElementById('p-cep').value,
+      logradouro: document.getElementById('p-rua').value,
+      numero: document.getElementById('p-num').value,
+      bairro: document.getElementById('p-bairro').value,
+      cidade: document.getElementById('p-cidade').value,
+      estado: document.getElementById('p-estado').value,
+    }).select().single();
+    clienteId = novoCliente?.id;
+    await carregarClientes();
+    await popularSelectClientes();
+  }
+
+  // Gerar número da proposta
+  const { count } = await db.from('propostas').select('id', {count:'exact'});
+  const numero = 'TES-' + String((count||0)+1).padStart(4,'0');
+
+  const moduloId = document.getElementById('p-modulo').value || null;
+  const inversorId = document.getElementById('p-inversor').value || null;
+  const valor = parseFloat(document.getElementById('p-valor').value) || 0;
+  const desconto = parseFloat(document.getElementById('p-desc').value) || 0;
+
+  const dados = {
+    numero,
+    cliente_id: clienteId,
+    consumo_kwh: parseFloat(document.getElementById('p-cons').value) || null,
+    tarifa: parseFloat(document.getElementById('p-tarifa').value) || null,
+    irradiacao: parseFloat(document.getElementById('p-irr').value) || 5,
+    potencia_kwp: parseFloat(document.getElementById('c-kwp').textContent) || null,
+    geracao_mensal: parseFloat(document.getElementById('c-ger').textContent) || null,
+    n_modulos: parseInt(document.getElementById('p-nmods').value) || null,
+    modulo_id: moduloId,
+    inversor_id: inversorId,
+    valor_sistema: valor,
+    desconto,
+    valor_final: parseFloat(document.getElementById('p-final').value) || (valor - desconto),
+    forma_pagamento: document.getElementById('p-pgto').value,
+    parcelas: parseInt(document.getElementById('p-parc').value) || null,
+    validade_dias: parseInt(document.getElementById('p-valid').value) || 15,
+    observacoes: document.getElementById('p-obs').value,
+    nome_vendedor: document.getElementById('p-vend').value,
+    status: 'rascunho'
+  };
+
+  const { error } = await db.from('propostas').insert(dados);
+  if (error) { toast('Erro ao salvar: ' + error.message, false); return; }
+  toast('Proposta ' + numero + ' salva!');
+  limparProposta();
+  carregarPropostas();
+  carregarDashboard();
+  ir('propostas');
+}
+
+function limparProposta() {
+  ['p-nome','p-tel','p-email','p-doc','p-cep','p-rua','p-num','p-bairro','p-cidade','p-estado','p-cons','p-tarifa','p-valor','p-desc','p-final','p-parc','p-obs'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('p-irr').value = '5.0';
+  document.getElementById('p-valid').value = '15';
+  document.getElementById('p-modulo').value = '';
+  document.getElementById('p-inversor').value = '';
+  document.getElementById('p-nmods').value = '';
+  document.getElementById('c-kwp').textContent = '-- kWp';
+  document.getElementById('c-ger').textContent = '-- kWh';
+  document.getElementById('c-eco').textContent = 'R$ --';
+  document.getElementById('p-cliente-sel').value = '';
+}
+
+// ============================================================
+// CÁLCULOS
+// ============================================================
+let equipData = [];
+
+function calcAuto() {
+  const cons = parseFloat(document.getElementById('p-cons').value);
+  const irr = parseFloat(document.getElementById('p-irr').value) || 5;
+  const tarifa = parseFloat(document.getElementById('p-tarifa').value) || 0;
+  const modId = document.getElementById('p-modulo').value;
+
+  if (!cons || cons <= 0) return;
+
+  const kwp = cons / (irr * 30 * 0.80);
+  const ger = kwp * irr * 30 * 0.80;
+  const eco = ger * tarifa;
+
+  document.getElementById('c-kwp').textContent = kwp.toFixed(2) + ' kWp';
+  document.getElementById('c-ger').textContent = ger.toFixed(0) + ' kWh';
+  document.getElementById('c-eco').textContent = 'R$ ' + eco.toFixed(2);
+
+  if (modId) {
+    const mod = equipData.find(e => e.id === modId);
+    if (mod && mod.potencia_w) {
+      const nMods = Math.ceil((kwp * 1000) / mod.potencia_w);
+      document.getElementById('p-nmods').value = nMods;
+    }
+  }
+}
+
+function calcFinanc() {
+  const v = parseFloat(document.getElementById('p-valor').value) || 0;
+  const d = parseFloat(document.getElementById('p-desc').value) || 0;
+  document.getElementById('p-final').value = (v - d).toFixed(2);
+}
+
+// ============================================================
+// EQUIPAMENTOS
+// ============================================================
+let todosEquip = [];
+
+async function carregarEquipamentos() {
+  const { data } = await db.from('equipamentos').select('*').order('tipo').order('potencia_w');
+  todosEquip = data || [];
+  equipData = data || [];
+  renderEquip(todosEquip);
+}
+
+function renderEquip(lista) {
+  const tb = document.getElementById('tabela-equip');
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum equipamento</td></tr>'; return; }
+  tb.innerHTML = lista.map(e => `
+    <tr>
+      <td><span class="badge" style="background:${e.tipo==='modulo'?'#1a3a1a':'#1a1a3a'};color:${e.tipo==='modulo'?'#5bf5a0':'#a0a0f5'}">${e.tipo}</span></td>
+      <td>${e.nome}</td>
+      <td>${e.potencia_w ? e.potencia_w+'W' : '-'}</td>
+      <td>${e.marca||'-'}</td>
+      <td>R$ ${(e.preco||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="editarEquip('${e.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirEquip('${e.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarEquip() {
+  const q = document.getElementById('busca-equip').value.toLowerCase();
+  renderEquip(todosEquip.filter(e => e.nome.toLowerCase().includes(q) || (e.marca||'').toLowerCase().includes(q)));
+}
+
+function abrirModalEquip(e=null) {
+  document.getElementById('me-id').value = e?.id || '';
+  document.getElementById('me-tipo').value = e?.tipo || 'modulo';
+  document.getElementById('me-nome').value = e?.nome || '';
+  document.getElementById('me-pot').value = e?.potencia_w || '';
+  document.getElementById('me-marca').value = e?.marca || '';
+  document.getElementById('me-dist').value = e?.distribuidor || '';
+  document.getElementById('me-preco').value = e?.preco || '';
+  document.getElementById('modal-equip').classList.add('aberto');
+}
+
+function editarEquip(id) { abrirModalEquip(todosEquip.find(e => e.id===id)); }
+
+async function excluirEquip(id) {
+  if (!confirm('Excluir este equipamento?')) return;
+  await db.from('equipamentos').delete().eq('id', id);
+  toast('Equipamento excluído');
+  carregarEquipamentos();
+  popularSelectsEquip();
+}
+
+async function salvarEquip() {
+  const id = document.getElementById('me-id').value;
+  const dados = {
+    tipo: document.getElementById('me-tipo').value,
+    nome: document.getElementById('me-nome').value.trim(),
+    potencia_w: parseFloat(document.getElementById('me-pot').value) || null,
+    marca: document.getElementById('me-marca').value,
+    distribuidor: document.getElementById('me-dist').value,
+    preco: parseFloat(document.getElementById('me-preco').value) || 0,
+  };
+  if (!dados.nome) { toast('Nome é obrigatório!', false); return; }
+  if (id) await db.from('equipamentos').update(dados).eq('id', id);
+  else await db.from('equipamentos').insert(dados);
+  toast('Equipamento salvo!');
+  fecharModal('modal-equip');
+  carregarEquipamentos();
+  popularSelectsEquip();
+}
+
+// ============================================================
+// SELECTS EQUIPAMENTOS (Nova Proposta)
+// ============================================================
+async function popularSelectsEquip() {
+  const { data } = await db.from('equipamentos').select('*').order('tipo').order('potencia_w');
+  equipData = data || [];
+  const mods = data?.filter(e => e.tipo === 'modulo') || [];
+  const invs = data?.filter(e => e.tipo === 'inversor') || [];
+
+  const smod = document.getElementById('p-modulo');
+  const sinv = document.getElementById('p-inversor');
+  const vmod = smod.value, vinv = sinv.value;
+
+  smod.innerHTML = '<option value="">-- Selecionar módulo --</option>' +
+    mods.map(m => `<option value="${m.id}">${m.nome} - R$ ${m.preco?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</option>`).join('');
+  sinv.innerHTML = '<option value="">-- Selecionar inversor --</option>' +
+    invs.map(i => `<option value="${i.id}">${i.nome} - R$ ${i.preco?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</option>`).join('');
+
+  if (vmod) smod.value = vmod;
+  if (vinv) sinv.value = vinv;
+}
+
+async function popularSelectClientes() {
+  const { data } = await db.from('clientes').select('id,nome').order('nome');
+  const sel = document.getElementById('p-cliente-sel');
+  const v = sel.value;
+  sel.innerHTML = '<option value="">-- Selecionar cliente cadastrado --</option>' +
+    (data||[]).map(c => `<option value="${c.id}">${c.nome}</option>`).join('');
+  if (v) sel.value = v;
+}
+
+function selecionarCliente() {
+  const id = document.getElementById('p-cliente-sel').value;
+  const c = todosClientes.find(x => x.id === id);
+  if (!c) return;
+  document.getElementById('p-nome').value = c.nome || '';
+  document.getElementById('p-tel').value = c.telefone || '';
+  document.getElementById('p-email').value = c.email || '';
+  document.getElementById('p-doc').value = c.cpf_cnpj || '';
+  document.getElementById('p-cep').value = c.cep || '';
+  document.getElementById('p-rua').value = c.logradouro || '';
+  document.getElementById('p-num').value = c.numero || '';
+  document.getElementById('p-bairro').value = c.bairro || '';
+  document.getElementById('p-cidade').value = c.cidade || '';
+  document.getElementById('p-estado').value = c.estado || '';
+}
+
+// ============================================================
+// CEP
+// ============================================================
+function mascCEP(el) {
+  let v = el.value.replace(/\D/g,'');
+  if (v.length > 5) v = v.slice(0,5) + '-' + v.slice(5,8);
+  el.value = v;
+}
+
+async function buscarCEP() {
+  const cepRaw = document.getElementById('p-cep').value.replace(/\D/g,'');
+  if (cepRaw.length !== 8) return;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cepRaw}/json/`);
+    const d = await r.json();
+    if (d.erro) return;
+    document.getElementById('p-rua').value = d.logradouro || '';
+    document.getElementById('p-bairro').value = d.bairro || '';
+    document.getElementById('p-cidade').value = d.localidade || '';
+    document.getElementById('p-estado').value = d.uf || '';
+    // Irradiação automática pela cidade/UF
+    const irr = getIrradiacao(d.localidade || '', d.uf || '');
+    document.getElementById('p-irr').value = irr;
+    calcAuto();
+  } catch(e) {}
+}
+
+// ============================================================
+// IRRADIAÇÃO AUTOMÁTICA POR CIDADE/ESTADO
+// ============================================================
+function getIrradiacao(cidade, uf) {
+  // Tabela de irradiação solar média (kWh/m²/dia) por cidade e estado
+  const porCidade = {
+    'mossoró':5.9,'natal':5.8,'fortaleza':5.8,'sobral':5.9,'juazeiro do norte':5.7,
+    'recife':5.5,'joão pessoa':5.6,'maceió':5.4,'aracaju':5.3,'salvador':5.2,
+    'feira de santana':5.3,'teresina':5.8,'são luís':5.2,'belém':4.8,'manaus':4.7,
+    'porto velho':4.6,'macapá':4.5,'boa vista':5.0,'rio branco':4.4,'palmas':5.5,
+    'goiânia':5.5,'brasília':5.6,'cuiabá':5.4,'campo grande':5.3,'belo horizonte':5.1,
+    'uberlândia':5.3,'são paulo':4.7,'campinas':4.8,'ribeirão preto':5.0,
+    'rio de janeiro':4.8,'niterói':4.7,'vitória':4.9,'porto alegre':4.3,
+    'florianópolis':4.4,'curitiba':4.2,'londrina':4.5,'joinville':4.1,
+    'petrolina':6.0,'juazeiro':5.9,'caruaru':5.3,'campina grande':5.4,
+    'pau dos ferros':5.8,'açu':5.9,'baraúna':5.9,'upanema':5.8,
+  };
+  const porUF = {
+    'RN':5.8,'CE':5.7,'PB':5.5,'PE':5.4,'AL':5.3,'SE':5.2,'BA':5.2,
+    'PI':5.7,'MA':5.1,'PA':4.7,'AM':4.6,'RR':4.9,'AP':4.4,'AC':4.3,
+    'RO':4.5,'TO':5.4,'GO':5.4,'DF':5.5,'MT':5.3,'MS':5.2,'MG':5.0,
+    'ES':4.8,'RJ':4.7,'SP':4.7,'PR':4.3,'SC':4.3,'RS':4.2,
+  };
+  const cidadeLower = (cidade||'').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g,'');
+  for (const [k,v] of Object.entries(porCidade)) {
+    if (cidadeLower.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))) return v;
+  }
+  return porUF[uf] || 5.0;
+}
+
+async function buscarCEPModal() {
+  const cepRaw = document.getElementById('mc-cep').value.replace(/\D/g,'');
+  if (cepRaw.length !== 8) return;
+  try {
+    const r = await fetch(`https://viacep.com.br/ws/${cepRaw}/json/`);
+    const d = await r.json();
+    if (d.erro) return;
+    document.getElementById('mc-rua').value = d.logradouro || '';
+    document.getElementById('mc-bairro').value = d.bairro || '';
+    document.getElementById('mc-cidade').value = d.localidade || '';
+    document.getElementById('mc-estado').value = d.uf || '';
+  } catch(e) {}
+}
+</script>
+</body>
+</html>
