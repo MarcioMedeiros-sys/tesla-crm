@@ -542,6 +542,55 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
 let chartBar=null, chartPB=null;
 
 // ============================================================
+// AUTO-PREENCHIMENTO A PARTIR DE PARÂMETROS DA URL (CRM)
+// ============================================================
+function carregarDaURL(){
+  const p = new URLSearchParams(window.location.search);
+  if (!p.has('nome') || !p.get('nome')) return; // sem parâmetros, modo manual
+
+  const set = (id, val) => { const el = document.getElementById(id); if(el && val) el.value = val; };
+
+  set('f-nome',    p.get('nome'));
+  set('f-cpf',     p.get('cpf'));
+  set('f-email',   p.get('email'));
+  set('f-tel',     p.get('tel'));
+  set('f-cep',     p.get('cep'));
+  set('f-cidade',  p.get('cidade'));
+  set('f-end',     p.get('end'));
+  set('f-cons',    p.get('cons'));
+  set('f-tarifa',  p.get('tarifa'));
+  set('f-irr',     p.get('irr') || '5.8');
+  set('f-pot',     p.get('pot'));
+  set('f-nmods',   p.get('nmods'));
+  set('f-prod',    p.get('prod'));
+  set('f-modulo',  p.get('modulo'));
+  set('f-inversor',p.get('inversor'));
+  set('f-valor',   p.get('valor'));
+  set('f-num',     p.get('num'));
+  set('f-validade',p.get('validade'));
+  set('f-prazo',   p.get('prazo') || '30 dias após aprovação');
+
+  // Forma de pagamento → parcelas financiamento
+  const pgto = p.get('pgto') || '';
+  const parc = p.get('parc') || '';
+  if (pgto) {
+    const selPgto = document.getElementById('f-ligacao');
+    // sem select de forma de pgto no template — guarda em obs se necessário
+  }
+  if (parc) set('f-parc-fin', parc);
+
+  // Observações — append info de pagamento se houver
+  const obs = [p.get('obs'), pgto ? 'Forma de pagamento: ' + pgto : ''].filter(Boolean).join('\n');
+  const elObs = document.getElementById('f-obs');
+  if (elObs && obs) elObs.value = obs;
+
+  // Oculta o formulário e gera proposta automaticamente
+  setTimeout(() => gerar(), 300);
+}
+
+window.addEventListener('DOMContentLoaded', carregarDaURL);
+
+// ============================================================
 // CEP → ENDEREÇO → COORDENADAS → IRRADIAÇÃO
 // ============================================================
 function mascararCEP(el){
