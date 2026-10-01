@@ -584,8 +584,9 @@ function carregarDaURL(){
   const elObs = document.getElementById('f-obs');
   if (elObs && obs) elObs.value = obs;
 
-  // Oculta o formulário e gera proposta automaticamente
-  setTimeout(() => gerar(), 300);
+  // Gera proposta automaticamente após preencher os campos
+  // Usa requestAnimationFrame duplo para garantir que os valores foram aplicados ao DOM
+  requestAnimationFrame(() => requestAnimationFrame(() => gerar()));
 }
 
 window.addEventListener('DOMContentLoaded', carregarDaURL);
@@ -761,10 +762,11 @@ function gerar(){
 
   // EQUIPAMENTOS
   const tbody=g('eq-tbody'); tbody.innerHTML='';
+  const qtdMods = nMods>0 ? nMods+'x' : '1x';
   const itens=[
-    {desc:modulo,qtd:'1 Kit'},
-    {desc:'  ↳ '+inversor,qtd:''},
-    {desc:'  ↳ '+estrDesc,qtd:''},
+    {desc:modulo,qtd:qtdMods},
+    {desc:inversor,qtd:'1x'},
+    {desc:estrDesc,qtd:'1x'},
   ];
   if(outros) itens.push({desc:'  ↳ '+outros,qtd:''});
   itens.forEach(it=>{
