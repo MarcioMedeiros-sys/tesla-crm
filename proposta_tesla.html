@@ -203,11 +203,14 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
   <div class="fcard">
     <div class="fcard-title">Dados do Sistema</div>
     <div class="fcard-body col3">
-      <div class="field"><label>Potência total (kWp) <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-pot" type="number" step="0.01" placeholder="Calculado pelo consumo" style="background:#f8fafc"></div>
-      <div class="field"><label>Nº de módulos <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-nmods" type="number" placeholder="Calculado" style="background:#f8fafc"></div>
-      <div class="field"><label>Produção média mensal (kWh) <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-prod" type="number" placeholder="Calculado" style="background:#f8fafc"></div>
-      <div class="field"><label>Consumo atual (kWh/mês)</label><input id="f-cons" type="number" placeholder="Ex: 600" oninput="calcAutoSistema()" onchange="calcAutoSistema()"></div>
-      <div class="field"><label>Área necessária (m²) <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-area" type="number" step="0.1" placeholder="Calculada" style="background:#f8fafc"></div>
+      <div class="field"><label>Consumo atual (kWh/mês)</label><input id="f-cons" type="number" placeholder="Ex: 1200" oninput="calcAutoSistema()" onchange="calcAutoSistema()"></div>
+      <div class="field"><label>Irradiação local (kWh/m²/dia)</label><input id="f-irr" type="number" step="0.1" value="5.8" oninput="calcAutoSistema()" onchange="calcAutoSistema()"></div>
+      <div class="field"><label>Eficiência do sistema (%)</label><input id="f-ef" type="number" step="1" value="80" min="60" max="95" oninput="calcAutoSistema()" onchange="calcAutoSistema()" title="Perdas do sistema — típico 75 a 82%"></div>
+      <div class="field"><label>Tarifa energia (R$/kWh)</label><input id="f-tarifa" type="number" step="0.01" placeholder="Ex: 1.01" oninput="calcAutoSistema()" onchange="calcAutoSistema()"></div>
+      <div class="field"><label>Potência total (kWp) <span style="color:#ff6606;font-size:11px">— calculado / ajustável</span></label><input id="f-pot" type="number" step="0.01" placeholder="Calculado" oninput="recalcPorPot()"></div>
+      <div class="field"><label>Nº de módulos <span style="color:#ff6606;font-size:11px">— calculado / ajustável</span></label><input id="f-nmods" type="number" placeholder="Calculado" oninput="recalcPorNmods()"></div>
+      <div class="field"><label>Produção média mensal (kWh) <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-prod" type="number" placeholder="Calculado" style="background:#f8fafc" readonly></div>
+      <div class="field"><label>Área necessária (m²) <span style="color:#ff6606;font-size:11px">— calculado automaticamente</span></label><input id="f-area" type="number" step="0.1" placeholder="Calculada" style="background:#f8fafc" readonly></div>
       <div class="field"><label>Tipo de estrutura</label>
         <select id="f-estrutura">
           <option>Telhado Cerâmico / Francês</option>
@@ -224,8 +227,6 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
           <option>Trifásico</option>
         </select>
       </div>
-      <div class="field"><label>Tarifa energia (R$/kWh)</label><input id="f-tarifa" oninput="calcAutoSistema()" type="number" step="0.01" placeholder="Ex: 1.01" oninput="calcAutoSistema()" onchange="calcAutoSistema()"></div>
-      <div class="field"><label>Irradiação local (kWh/m²/dia)</label><input id="f-irr" oninput="calcAutoSistema()" type="number" step="0.1" value="5.8" onchange="calcAutoSistema()"></div>
     </div>
   </div>
 
@@ -562,7 +563,8 @@ function carregarDaURL(){
   set('f-end',     p.get('end'));
   set('f-cons',    p.get('cons'));
   set('f-tarifa',  p.get('tarifa'));
-  set('f-irr',     p.get('irr') || '5.8');
+  const irrVal = p.get('irr');
+  if(irrVal && parseFloat(irrVal) > 0) set('f-irr', irrVal); // só sobrescreve se vier valor real
   set('f-pot',     p.get('pot'));
   set('f-nmods',   p.get('nmods'));
   set('f-prod',    p.get('prod'));
@@ -959,38 +961,77 @@ function carregarInversor(){
   if(fi) fi.value = '1x '+desc;
 }
 
+function getEfic(){
+  const v = parseFloat(document.getElementById('f-ef').value);
+  return (isNaN(v)||v<=0) ? 0.80 : v/100;
+}
+
 function calcAutoSistema(){
   const cons = parseFloat(document.getElementById('f-cons').value)||0;
   const irr  = parseFloat(document.getElementById('f-irr').value)||5.8;
   if(cons<=0) return;
-  const perdas = 0.80;
+  const ef = getEfic();
   // 1) Potência mínima necessária
-  const potKwp = cons / (irr * 30 * perdas);
+  const potKwp = cons / (irr * 30 * ef);
   // 2) Módulo selecionado?
   const selMod = document.getElementById('modSelect');
   const modSel = selMod&&selMod.value ? DB_MODULOS.find(x=>x.id===selMod.value) : null;
-  // 3) Calcular com módulo real ou só potência
   const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
-  set('f-pot', potKwp.toFixed(2));
-  // Produção proporcional
-  const prod = Math.round(potKwp * irr * 30 * perdas);
-  set('f-prod', prod);
   if(modSel){
-    // Com módulo definido: calcular nº e área reais
     const nMods = Math.ceil(potKwp * 1000 / modSel.pot);
     const potReal = (nMods * modSel.pot / 1000);
-    const area = (nMods * 2.4).toFixed(1);
     set('f-pot',   potReal.toFixed(2));
     set('f-nmods', nMods);
-    set('f-prod',  Math.round(potReal * irr * 30 * perdas));
-    set('f-area',  area);
-    // Atualizar texto do módulo com quantidade
+    set('f-prod',  Math.round(potReal * irr * 30 * ef));
+    set('f-area',  (nMods * 2.4).toFixed(1));
     const fi = document.getElementById('f-modulo');
     if(fi) fi.value = nMods+'x '+modSel.fab+' '+modSel.mod;
   } else {
-    // Sem módulo: limpar campos que dependem da potência do painel
+    set('f-pot',   potKwp.toFixed(2));
+    set('f-prod',  Math.round(potKwp * irr * 30 * ef));
     set('f-nmods', '');
     set('f-area',  '');
+  }
+}
+
+// Usuário ajustou manualmente o nº de módulos → recalcula potência e produção
+function recalcPorNmods(){
+  const nMods = parseInt(document.getElementById('f-nmods').value)||0;
+  const irr   = parseFloat(document.getElementById('f-irr').value)||5.8;
+  const ef    = getEfic();
+  const selMod = document.getElementById('modSelect');
+  const modSel = selMod&&selMod.value ? DB_MODULOS.find(x=>x.id===selMod.value) : null;
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+  if(nMods<=0) return;
+  if(modSel){
+    const potReal = (nMods * modSel.pot / 1000);
+    set('f-pot',  potReal.toFixed(2));
+    set('f-prod', Math.round(potReal * irr * 30 * ef));
+    set('f-area', (nMods * 2.4).toFixed(1));
+    const fi = document.getElementById('f-modulo');
+    if(fi) fi.value = nMods+'x '+modSel.fab+' '+modSel.mod;
+  } else {
+    // sem módulo selecionado — só atualiza área estimada (2.4m²/módulo)
+    set('f-area', (nMods * 2.4).toFixed(1));
+  }
+}
+
+// Usuário ajustou manualmente a potência → recalcula nº de módulos
+function recalcPorPot(){
+  const pot    = parseFloat(document.getElementById('f-pot').value)||0;
+  const irr    = parseFloat(document.getElementById('f-irr').value)||5.8;
+  const ef     = getEfic();
+  const selMod = document.getElementById('modSelect');
+  const modSel = selMod&&selMod.value ? DB_MODULOS.find(x=>x.id===selMod.value) : null;
+  const set = (id,val)=>{ const el=document.getElementById(id); if(el) el.value=val; };
+  if(pot<=0) return;
+  set('f-prod', Math.round(pot * irr * 30 * ef));
+  if(modSel){
+    const nMods = Math.ceil(pot * 1000 / modSel.pot);
+    set('f-nmods', nMods);
+    set('f-area',  (nMods * 2.4).toFixed(1));
+    const fi = document.getElementById('f-modulo');
+    if(fi) fi.value = nMods+'x '+modSel.fab+' '+modSel.mod;
   }
 }
 

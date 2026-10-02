@@ -561,7 +561,7 @@ async function gerarProposta(id) {
     end: [c.logradouro, c.numero, c.bairro].filter(Boolean).join(', '),
     cons: p.consumo_kwh || '',
     tarifa: p.tarifa || '',
-    irr: p.irradiacao || 5,
+    irr: p.irradiacao || '',
     pot: p.potencia_kwp || '',
     nmods: p.n_modulos || '',
     prod: p.geracao_mensal || '',
