@@ -48,8 +48,9 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
   #painel,#form-wrap,#print-hint{display:none!important}
   #proposta-wrap{display:block!important;padding:0;margin:0;max-width:100%}
-  .pagina{page-break-after:always;box-shadow:none!important;border-radius:0!important}
+  .pagina{page-break-after:always;page-break-inside:avoid;box-shadow:none!important;border-radius:0!important}
   .pagina:last-child{page-break-after:avoid}
+  .capa{max-height:none;min-height:0;height:100vh}
 }
 
 /* ===== PÁGINAS ===== */
@@ -57,23 +58,23 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
   border-radius:4px;overflow:hidden;position:relative}
 
 /* ----- CAPA ----- */
-.capa{min-height:1050px;display:flex;flex-direction:column}
-.capa-header{background:#ff6606;padding:18px 32px;text-align:center}
-.capa-header img{height:60px;object-fit:contain}
-.capa-band{background:#ff6606;padding:14px 32px;text-align:center}
-.capa-band h2{color:#fff;font-size:1rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.3}
-.capa-foto{flex:1;background:#1a1a2e;min-height:380px;position:relative;overflow:hidden}
+.capa{min-height:980px;max-height:1060px;display:flex;flex-direction:column;page-break-after:always;page-break-inside:avoid}
+.capa-header{background:#ff6606;padding:12px 32px;text-align:center}
+.capa-header img{height:52px;object-fit:contain}
+.capa-band{background:#ff6606;padding:10px 32px;text-align:center}
+.capa-band h2{color:#fff;font-size:.95rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.3}
+.capa-foto{flex:1;background:#1a1a2e;min-height:340px;max-height:400px;position:relative;overflow:hidden}
 .capa-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
 .capa-foto::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.5))}
-.capa-titulo{background:#ff6606;padding:28px 32px;text-align:center}
-.capa-titulo h1{color:#fff;font-size:2.8rem;font-weight:900;letter-spacing:.02em;line-height:1}
-.capa-titulo p{color:rgba(255,255,255,.85);font-size:.95rem;font-weight:600;letter-spacing:.08em;
-  text-transform:uppercase;margin-top:6px}
-.capa-dados{padding:24px 32px;display:grid;grid-template-columns:1fr 1fr;gap:6px 24px;border-bottom:3px solid #ff6606}
+.capa-titulo{background:#ff6606;padding:20px 32px;text-align:center}
+.capa-titulo h1{color:#fff;font-size:2.4rem;font-weight:900;letter-spacing:.02em;line-height:1}
+.capa-titulo p{color:rgba(255,255,255,.85);font-size:.9rem;font-weight:600;letter-spacing:.08em;
+  text-transform:uppercase;margin-top:5px}
+.capa-dados{padding:16px 32px;display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;border-bottom:3px solid #ff6606}
 .capa-dado{display:flex;gap:8px;align-items:baseline}
-.capa-dado .cd-label{font-size:.8rem;font-weight:800;color:#1a1a2e;text-transform:uppercase;white-space:nowrap}
-.capa-dado .cd-val{font-size:.85rem;color:#444}
-.capa-rodape{background:#1a1a2e;padding:12px 32px;text-align:center;font-size:.72rem;
+.capa-dado .cd-label{font-size:.78rem;font-weight:800;color:#1a1a2e;text-transform:uppercase;white-space:nowrap}
+.capa-dado .cd-val{font-size:.82rem;color:#444}
+.capa-rodape{background:#1a1a2e;padding:10px 32px;text-align:center;font-size:.7rem;
   color:#aaa;letter-spacing:.08em;text-transform:uppercase}
 
 /* ----- PÁGINAS INTERNAS: header/footer ----- */
@@ -767,9 +768,21 @@ function gerar(){
 
   // EQUIPAMENTOS
   const tbody=g('eq-tbody'); tbody.innerHTML='';
-  const qtdMods = nMods>0 ? nMods+'x' : '1x';
+  // Tenta extrair quantidade do texto do módulo se nMods não veio (ex: "22x Püling 600W...")
+  let nModsReal = nMods;
+  if(nModsReal <= 0 && modulo && modulo !== '—'){
+    const m = modulo.match(/^(\d+)\s*x/i);
+    if(m) nModsReal = parseInt(m[1]);
+  }
+  // Se ainda zero, tenta calcular por potência
+  if(nModsReal <= 0 && pot > 0){
+    nModsReal = Math.round(pot * 1000 / 600); // estimativa genérica 600W
+  }
+  const qtdMods = nModsReal > 0 ? nModsReal+'x' : '';
+  // Remove prefixo "NNx " do texto do módulo para não duplicar
+  const moduloDesc = modulo.replace(/^\d+\s*x\s*/i, '');
   const itens=[
-    {desc:modulo,qtd:qtdMods},
+    {desc:moduloDesc,qtd:qtdMods},
     {desc:inversor,qtd:'1x'},
     {desc:estrDesc,qtd:'1x'},
   ];
