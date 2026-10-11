@@ -802,11 +802,11 @@ async function importarClientesExcel(input) {
         atualizado_em: new Date().toISOString()
       }));
 
-      // Upsert em lotes de 100 (evita timeout)
+      // Insert em lotes de 100
       let ok = 0, err = 0;
       for (let i = 0; i < lote.length; i += 100) {
         const chunk = lote.slice(i, i+100);
-        const { error } = await db.from('clientes').upsert(chunk, {onConflict:'cpf_cnpj', ignoreDuplicates:false});
+        const { error } = await db.from('clientes').insert(chunk);
         if (error) { console.error(error); err += chunk.length; }
         else ok += chunk.length;
         toast(`Importando... ${Math.min(i+100, lote.length)}/${lote.length}`);
