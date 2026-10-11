@@ -1393,82 +1393,95 @@ async function importarExcel(input) {
     let modImport = 0, invImport = 0, erros = 0;
 
     // === ABA MÓDULOS ===
-    const abaModulo = wb.SheetNames.find(s => s.toUpperCase().includes('MODU') || s.toUpperCase().includes('MÓDULO'));
+    // Estrutura real do eQUIPAMENTOS.xlsx (leitura por posição, linha 0 = cabeçalho)
+    // Col3=Coluna2(nome), Col4=MODELO, Col11=POTÊNCIA, Col12=VALOR(R$),
+    // Col14=°C Op(noct), Col16=Voc(coef_voc), Col18=Vmp, Col19=Imp, Col20=Voc3(Voc real), Col21=Isc4(Isc real), Col22=DISTRIBUIDOR
+    const abaModulo = wb.SheetNames.find(s => s.toUpperCase().replace(/[^A-Z]/g,'').includes('MODULO') || s.toUpperCase().includes('MÓDULOS'));
     if (abaModulo) {
       logMsg(`\n📋 Processando aba "${abaModulo}"...`);
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[abaModulo], {defval:''});
-      logMsg(`  ${rows.length} linhas encontradas`);
+      const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[abaModulo], {header:1, defval:''});
+      // Pular linha 0 (cabeçalho)
+      const dataRows = rawRows.slice(1);
+      logMsg(`  ${dataRows.length} linhas encontradas`);
 
-      for (const r of rows) {
-        // Tentar mapear colunas flexivelmente
-        const nome = r['NOME'] || r['Nome'] || r['MODELO'] || r['Modelo'] || r['DESCRIÇÃO'] || r['Descrição'] || '';
-        const marca = r['MARCA'] || r['Marca'] || r['FABRICANTE'] || r['Fabricante'] || '';
-        const pot = parseFloat(r['POTÊNCIA'] || r['Potência'] || r['POTENCIA'] || r['Potencia'] || r['Wp'] || r['WP'] || r['W'] || 0) || null;
-        const voc = parseFloat(r['VOC'] || r['Voc'] || r['V OC'] || r['VCA'] || 0) || null;
-        const vmp = parseFloat(r['VMP'] || r['Vmp'] || r['V MP'] || r['VMPP'] || r['Vmpp'] || 0) || null;
-        const isc = parseFloat(r['ISC'] || r['Isc'] || r['I SC'] || r['ICC'] || 0) || null;
-        const imp = parseFloat(r['IMP'] || r['Imp'] || r['I MP'] || r['IMPP'] || r['Impp'] || 0) || null;
-        const preco = parseFloat(r['PREÇO'] || r['Preço'] || r['PRECO'] || r['Preco'] || r['VALOR'] || r['Valor'] || 0) || 0;
-        const dist = r['DISTRIBUIDOR'] || r['Distribuidor'] || r['FORNECEDOR'] || '';
+      for (const r of dataRows) {
+        // Col 3: código marca_modelo (ex: "AKCOME_550") — usar como nome
+        const nomeRaw = String(r[3] || '').trim();
+        if (!nomeRaw || nomeRaw === '' || nomeRaw.toLowerCase() === 'coluna2') continue;
 
-        if (!nome || typeof nome !== 'string' || nome.trim() === '') continue;
+        const pot   = parseFloat(r[11]) || null;   // POTÊNCIA (W)
+        const preco = parseFloat(r[12]) || 0;       // VALOR (R$)
+        const noct  = parseFloat(r[14]) || null;    // °C Op (NOCT)
+        const coefVoc = parseFloat(r[16]) || null;  // Voc coef (ex: -0.003)
+        const vmp   = parseFloat(r[18]) || null;    // Vmp real
+        const imp   = parseFloat(r[19]) || null;    // Imp real
+        const voc   = parseFloat(r[20]) || null;    // Voc3 = Voc real (ex: 42.05)
+        const isc   = parseFloat(r[21]) || null;    // Isc4 = Isc real (ex: 12.84)
+        const dist  = String(r[22] || '').trim() || null;
+
+        // Extrair marca do código (antes do "_")
+        const marcaParte = nomeRaw.includes('_') ? nomeRaw.split('_')[0] : null;
 
         try {
-          const dados = { tipo:'modulo', nome:nome.trim(), marca:marca||null, potencia_w:pot, voc, vmp, isc, imp, preco, distribuidor:dist||null };
-          // Verificar se já existe
+          const dados = { tipo:'modulo', nome:nomeRaw, marca:marcaParte, potencia_w:pot, voc, vmp, isc, imp, coef_temp_voc:coefVoc, temp_noct:noct, preco, distribuidor:dist };
           const { data: exist } = await db.from('equipamentos').select('id').eq('nome', dados.nome).eq('tipo','modulo').maybeSingle();
           if (exist) {
             await db.from('equipamentos').update(dados).eq('id', exist.id);
-            logMsg(`  🔄 Módulo atualizado: ${nome}`, '#f5a623');
+            logMsg(`  🔄 Módulo atualizado: ${nomeRaw}`, '#f5a623');
           } else {
             const { error } = await db.from('equipamentos').insert(dados);
-            if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
-            else { logMsg(`  ✅ Módulo: ${nome}`, '#2ecc71'); }
+            if (error) { logMsg(`  ⚠️ ${nomeRaw}: ${error.message}`, '#e74c3c'); erros++; }
+            else { logMsg(`  ✅ Módulo: ${nomeRaw}`, '#2ecc71'); modImport++; }
           }
-          modImport++;
-        } catch(e) { erros++; }
+        } catch(e) { logMsg(`  ❌ ${nomeRaw}: ${e.message}`, '#e74c3c'); erros++; }
       }
     } else {
-      logMsg('ℹ️ Aba de módulos não encontrada (esperado: "MÓDULOS", "MODULOS" ou similar)', '#888');
+      logMsg('ℹ️ Aba de módulos não encontrada', '#888');
     }
 
     // === ABA INVERSORES ===
+    // Col1=INVERSOR(nome), Col2=MODELO, Col3=POTÊNCIA(W), Col5=Valor(R$),
+    // Col7=Numero de Mppt, Col8=N° de Strings, Col11=Tensão Max In, Col13=Corrente Max In
+    // ⚠️ SEM coluna Vstart — preencher manualmente após importação
     const abaInv = wb.SheetNames.find(s => s.toUpperCase().includes('INVER'));
     if (abaInv) {
       logMsg(`\n📋 Processando aba "${abaInv}"...`);
-      const rows = XLSX.utils.sheet_to_json(wb.Sheets[abaInv], {defval:''});
-      logMsg(`  ${rows.length} linhas encontradas`);
+      const rawRows = XLSX.utils.sheet_to_json(wb.Sheets[abaInv], {header:1, defval:''});
+      const dataRows = rawRows.slice(1);
+      logMsg(`  ${dataRows.length} linhas encontradas`);
 
-      for (const r of rows) {
-        const nome = r['NOME'] || r['Nome'] || r['MODELO'] || r['Modelo'] || r['DESCRIÇÃO'] || r['Descrição'] || '';
-        const marca = r['MARCA'] || r['Marca'] || r['FABRICANTE'] || '';
-        const pot = parseFloat(r['POTÊNCIA AC'] || r['Potência AC'] || r['POTENCIA'] || r['Potencia'] || r['W'] || r['KW'] || 0) || null;
-        const nmppt = parseInt(r['N MPPT'] || r['Nº MPPT'] || r['MPPT'] || r['N_MPPT'] || 0) || null;
-        const stmppt = parseInt(r['STRINGS/MPPT'] || r['Strings/MPPT'] || r['STR MPPT'] || 1) || null;
-        const vstart = parseFloat(r['VSTART'] || r['Vstart'] || r['V START'] || r['V_START'] || r['TENSÃO START'] || 0) || null;
-        const vmax = parseFloat(r['VMAX'] || r['Vmax'] || r['V MAX'] || r['V_MAX'] || r['TENSÃO MAX CC'] || 0) || null;
-        const imaxmppt = parseFloat(r['IMAX MPPT'] || r['Imax MPPT'] || r['I MAX MPPT'] || r['CORRENTE MAX'] || 0) || null;
-        const preco = parseFloat(r['PREÇO'] || r['Preço'] || r['PRECO'] || r['VALOR'] || 0) || 0;
-        const dist = r['DISTRIBUIDOR'] || r['Distribuidor'] || r['FORNECEDOR'] || '';
+      for (const r of dataRows) {
+        // Col 1: código marca_modelo (ex: "Deye_1600")
+        const nomeRaw = String(r[1] || '').trim();
+        if (!nomeRaw || nomeRaw === '' || nomeRaw.toLowerCase().includes('inversor')) continue;
 
-        if (!nome || typeof nome !== 'string' || nome.trim() === '') continue;
+        const pot      = parseFloat(r[3])  || null;  // POTÊNCIA (W)
+        const preco    = parseFloat(r[5])  || 0;     // Valor (R$)
+        const nmppt    = parseInt(r[7])    || null;  // Numero de Mppt
+        const strTot   = parseInt(r[8])    || null;  // N° de Strings total
+        const vmax     = parseFloat(r[11]) || null;  // Tensão Max In
+        const imaxmppt = parseFloat(r[13]) || null;  // Corrente Max In
+
+        // Strings por MPPT = total ÷ n_mppt (arredondado)
+        const stmppt = (nmppt && strTot) ? Math.round(strTot / nmppt) : null;
+        const marcaParte = nomeRaw.includes('_') ? nomeRaw.split('_')[0] : null;
 
         try {
-          const dados = { tipo:'inversor', nome:nome.trim(), marca:marca||null, potencia_w:pot, n_mppt:nmppt, strings_por_mppt:stmppt, v_start:vstart, v_max_entrada:vmax, i_max_mppt:imaxmppt, preco, distribuidor:dist||null };
+          const dados = { tipo:'inversor', nome:nomeRaw, marca:marcaParte, potencia_w:pot, n_mppt:nmppt, strings_por_mppt:stmppt, v_start:null, v_max_entrada:vmax, i_max_mppt:imaxmppt, preco, distribuidor:null };
           const { data: exist } = await db.from('equipamentos').select('id').eq('nome', dados.nome).eq('tipo','inversor').maybeSingle();
           if (exist) {
             await db.from('equipamentos').update(dados).eq('id', exist.id);
-            logMsg(`  🔄 Inversor atualizado: ${nome}`, '#f5a623');
+            logMsg(`  🔄 Inversor atualizado: ${nomeRaw}`, '#f5a623');
           } else {
             const { error } = await db.from('equipamentos').insert(dados);
-            if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
-            else { logMsg(`  ✅ Inversor: ${nome}`, '#2ecc71'); }
+            if (error) { logMsg(`  ⚠️ ${nomeRaw}: ${error.message}`, '#e74c3c'); erros++; }
+            else { logMsg(`  ✅ Inversor: ${nomeRaw}`, '#2ecc71'); invImport++; }
           }
-          invImport++;
-        } catch(e) { erros++; }
+        } catch(e) { logMsg(`  ❌ ${nomeRaw}: ${e.message}`, '#e74c3c'); erros++; }
       }
+      logMsg(`\n⚠️ ATENÇÃO: A planilha não tem coluna "Vstart". Após importar, edite cada inversor e preencha a Tensão de Partida (Vstart) manualmente.`, '#f5a623');
     } else {
-      logMsg('ℹ️ Aba de inversores não encontrada (esperado: "INVERSORES" ou similar)', '#888');
+      logMsg('ℹ️ Aba de inversores não encontrada', '#888');
     }
 
     logMsg(`\n🏁 Concluído! Módulos: ${modImport} | Inversores: ${invImport} | Erros: ${erros}`, '#f5a623');
