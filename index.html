@@ -89,6 +89,23 @@ tr:hover td{background:#1f1f1f}
 /* VAZIO */
 .vazio{text-align:center;padding:40px;color:#555}
 .vazio .ic{font-size:3rem;margin-bottom:10px}
+/* VALIDAÇÃO MPPT */
+.validacao-box{margin-top:16px;padding:16px;border-radius:8px;display:none}
+.validacao-box.v-ok{display:block;background:#0d2b0d;border:2px solid #2ecc71}
+.validacao-box.v-erro{display:block;background:#2b0d0d;border:2px solid #e74c3c}
+.validacao-box.v-aviso{display:block;background:#2b2200;border:2px solid #f5a623}
+.v-titulo{font-size:1rem;font-weight:700;margin-bottom:10px}
+.v-ok .v-titulo{color:#2ecc71}
+.v-erro .v-titulo{color:#e74c3c}
+.v-aviso .v-titulo{color:#f5a623}
+.v-linha{font-size:.85rem;margin:4px 0;color:#ccc}
+.v-linha strong{color:#fff}
+/* TABS MODAL */
+.modal-tabs{display:flex;gap:0;margin-bottom:16px;border-bottom:1px solid #333}
+.modal-tab{padding:8px 16px;cursor:pointer;color:#888;font-size:.85rem;font-weight:600;border-bottom:2px solid transparent;margin-bottom:-1px}
+.modal-tab.ativo{color:#f5a623;border-bottom-color:#f5a623}
+.secao-campos{display:none}
+.secao-campos.ativa{display:block}
 </style>
 </head>
 <body>
@@ -205,14 +222,16 @@ tr:hover td{background:#1f1f1f}
           <div class="form-group"><label>Tarifa (R$/kWh)</label><input type="number" id="p-tarifa" placeholder="ex: 0.85" step="0.01" oninput="calcAuto()" onchange="calcAuto()"></div>
           <div class="form-group"><label>Irradiação (h sol/dia)</label><input type="number" id="p-irr" value="5.0" step="0.1" oninput="calcAuto()" onchange="calcAuto()"></div>
           <div class="form-group"><label>Módulo Fotovoltaico</label><select id="p-modulo" onchange="calcAuto()"><option value="">-- Selecionar módulo --</option></select></div>
-          <div class="form-group"><label>Inversor</label><select id="p-inversor"><option value="">-- Selecionar inversor --</option></select></div>
-          <div class="form-group"><label>Qtd Módulos (calculado)</label><input type="number" id="p-nmods" placeholder="automático"></div>
+          <div class="form-group"><label>Inversor</label><select id="p-inversor" onchange="validarMPPT()"><option value="">-- Selecionar inversor --</option></select></div>
+          <div class="form-group"><label>Qtd Módulos (calculado)</label><input type="number" id="p-nmods" placeholder="automático" oninput="validarMPPT()"></div>
         </div>
         <div class="calc-box">
           <div class="calc-item"><label>Potência do Sistema</label><div class="val" id="c-kwp">-- kWp</div></div>
           <div class="calc-item"><label>Geração Mensal Est.</label><div class="val" id="c-ger">-- kWh</div></div>
           <div class="calc-item"><label>Economia Mensal Est.</label><div class="val" id="c-eco">R$ --</div></div>
         </div>
+        <!-- VALIDAÇÃO MPPT -->
+        <div class="validacao-box" id="validacao-mppt"></div>
       </div>
 
       <div class="form-card">
@@ -286,17 +305,80 @@ tr:hover td{background:#1f1f1f}
 
 <!-- MODAL EQUIPAMENTO -->
 <div class="modal-bg" id="modal-equip">
-  <div class="modal">
+  <div class="modal" style="max-width:620px">
     <h3>🔧 Equipamento</h3>
     <input type="hidden" id="me-id">
-    <div class="form-grid">
-      <div class="form-group"><label>Tipo</label><select id="me-tipo"><option value="modulo">Módulo</option><option value="inversor">Inversor</option></select></div>
+    <div class="form-grid" style="margin-bottom:14px">
+      <div class="form-group"><label>Tipo</label><select id="me-tipo" onchange="mostrarCamposElec()"><option value="modulo">Módulo Fotovoltaico</option><option value="inversor">Inversor</option></select></div>
       <div class="form-group"><label>Potência (W)</label><input type="number" id="me-pot"></div>
-      <div class="form-group" style="grid-column:1/-1"><label>Nome / Descrição *</label><input type="text" id="me-nome"></div>
+      <div class="form-group" style="grid-column:1/-1"><label>Nome / Descrição *</label><input type="text" id="me-nome" placeholder="Ex: Módulo 550W Risen RSM110-8"></div>
       <div class="form-group"><label>Marca</label><input type="text" id="me-marca"></div>
       <div class="form-group"><label>Distribuidor</label><input type="text" id="me-dist"></div>
       <div class="form-group"><label>Preço (R$)</label><input type="number" id="me-preco" step="0.01"></div>
     </div>
+
+    <!-- CAMPOS MÓDULO -->
+    <div class="secao-campos ativa" id="campos-modulo">
+      <div style="color:#888;font-size:.8rem;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">⚡ Parâmetros Elétricos (STC) — Módulo</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Voc — Tensão de circuito aberto (V)</label>
+          <input type="number" id="me-voc" step="0.01" placeholder="ex: 49.5">
+        </div>
+        <div class="form-group">
+          <label>Vmp — Tensão de máx. potência (V)</label>
+          <input type="number" id="me-vmp" step="0.01" placeholder="ex: 41.3">
+        </div>
+        <div class="form-group">
+          <label>Isc — Corrente de curto-circuito (A)</label>
+          <input type="number" id="me-isc" step="0.01" placeholder="ex: 13.9">
+        </div>
+        <div class="form-group">
+          <label>Imp — Corrente de máx. potência (A)</label>
+          <input type="number" id="me-imp" step="0.01" placeholder="ex: 13.2">
+        </div>
+        <div class="form-group">
+          <label>Coef. Temp. Voc (%/°C)</label>
+          <input type="number" id="me-coef-voc" step="0.001" placeholder="ex: -0.274">
+        </div>
+        <div class="form-group">
+          <label>Temp. NOCT (°C)</label>
+          <input type="number" id="me-noct" step="0.1" placeholder="ex: 45">
+        </div>
+      </div>
+    </div>
+
+    <!-- CAMPOS INVERSOR -->
+    <div class="secao-campos" id="campos-inversor">
+      <div style="color:#888;font-size:.8rem;font-weight:700;margin-bottom:10px;text-transform:uppercase;letter-spacing:.05em">⚡ Parâmetros Elétricos — Inversor</div>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>Nº de MPPTs</label>
+          <input type="number" id="me-nmppt" placeholder="ex: 2">
+        </div>
+        <div class="form-group">
+          <label>Strings por MPPT</label>
+          <input type="number" id="me-stmppt" placeholder="ex: 1">
+        </div>
+        <div class="form-group">
+          <label>Vstart — Tensão de partida (V) ⚠️</label>
+          <input type="number" id="me-vstart" step="0.1" placeholder="ex: 150">
+        </div>
+        <div class="form-group">
+          <label>Vmax entrada — Tensão máx. CC (V)</label>
+          <input type="number" id="me-vmax" step="0.1" placeholder="ex: 1000">
+        </div>
+        <div class="form-group">
+          <label>Imax MPPT — Corrente máx. por MPPT (A)</label>
+          <input type="number" id="me-imaxmppt" step="0.1" placeholder="ex: 26">
+        </div>
+        <div class="form-group">
+          <label>Potência AC nominal (W)</label>
+          <input type="number" id="me-potac" placeholder="ex: 5000">
+        </div>
+      </div>
+    </div>
+
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="fecharModal('modal-equip')">Cancelar</button>
       <button class="btn btn-primary" onclick="salvarEquip()">Salvar</button>
@@ -605,6 +687,14 @@ async function excluirProposta(id) {
 }
 
 async function salvarProposta() {
+  // Bloquear se kit incompatível
+  const vbox = document.getElementById('validacao-mppt');
+  if (vbox.classList.contains('v-erro')) {
+    toast('⛔ Kit incompatível! Corrija os problemas elétricos antes de salvar.', false);
+    vbox.scrollIntoView({behavior:'smooth', block:'center'});
+    return;
+  }
+
   let clienteId = document.getElementById('p-cliente-sel').value;
 
   // Se não selecionou cliente, cria novo
@@ -682,6 +772,9 @@ function limparProposta() {
   document.getElementById('c-ger').textContent = '-- kWh';
   document.getElementById('c-eco').textContent = 'R$ --';
   document.getElementById('p-cliente-sel').value = '';
+  const vbox = document.getElementById('validacao-mppt');
+  vbox.className = 'validacao-box';
+  vbox.innerHTML = '';
 }
 
 // ============================================================
@@ -711,6 +804,92 @@ function calcAuto() {
       const nMods = Math.ceil((kwp * 1000) / mod.potencia_w);
       document.getElementById('p-nmods').value = nMods;
     }
+  }
+  validarMPPT();
+}
+
+// ============================================================
+// VALIDAÇÃO MPPT — CORAÇÃO DO SISTEMA
+// ============================================================
+function validarMPPT() {
+  const box = document.getElementById('validacao-mppt');
+  const modId = document.getElementById('p-modulo').value;
+  const invId = document.getElementById('p-inversor').value;
+  const nMods = parseInt(document.getElementById('p-nmods').value) || 0;
+
+  if (!modId || !invId || !nMods) {
+    box.className = 'validacao-box';
+    box.innerHTML = '';
+    return;
+  }
+
+  const mod = equipData.find(e => e.id === modId);
+  const inv = equipData.find(e => e.id === invId);
+  if (!mod || !inv) return;
+
+  const problemas = [];
+  const avisos = [];
+  const infos = [];
+
+  // === TENSÃO DA STRING ===
+  const vString = nMods * (mod.vmp || 0);
+  const vStringOc = nMods * (mod.voc || 0);
+  const vStart = inv.v_start || 0;
+  const vMax = inv.v_max_entrada || 0;
+  const imaxMppt = inv.i_max_mppt || 0;
+  const isc = mod.isc || 0;
+
+  infos.push(`📐 String: <strong>${nMods} módulos</strong> × Vmp <strong>${mod.vmp||'?'}V</strong> = <strong>${vString.toFixed(0)}V</strong>`);
+
+  if (vStart > 0 && vString < vStart) {
+    problemas.push(`🔴 PROBLEMA CRÍTICO: Tensão da string (${vString.toFixed(0)}V) é MENOR que a tensão de partida do inversor (${vStart}V). O inversor NÃO vai ligar de manhã — você vai perder horas de geração todos os dias!`);
+    // Sugerir quantos módulos seriam necessários
+    if (mod.vmp) {
+      const modsNec = Math.ceil(vStart / mod.vmp) + 1;
+      problemas.push(`💡 Para resolver: use pelo menos <strong>${modsNec} módulos</strong> em série (Vstring = ${(modsNec * mod.vmp).toFixed(0)}V ≥ ${vStart}V)`);
+    }
+  } else if (vStart > 0) {
+    infos.push(`✅ Tensão de partida OK: ${vString.toFixed(0)}V ≥ ${vStart}V (Vstart inversor)`);
+  }
+
+  if (vMax > 0 && vStringOc > vMax) {
+    problemas.push(`🔴 PERIGO: Tensão de circuito aberto (${vStringOc.toFixed(0)}V) ULTRAPASSA o limite máximo do inversor (${vMax}V). Risco de dano ao equipamento!`);
+    if (mod.voc) {
+      const modsMax = Math.floor(vMax / mod.voc);
+      avisos.push(`💡 Máximo seguro: <strong>${modsMax} módulos</strong> em série (Voc = ${(modsMax * mod.voc).toFixed(0)}V ≤ ${vMax}V)`);
+    }
+  } else if (vMax > 0) {
+    infos.push(`✅ Tensão máxima OK: Voc total ${vStringOc.toFixed(0)}V ≤ ${vMax}V (limite inversor)`);
+  }
+
+  if (imaxMppt > 0 && isc > imaxMppt) {
+    avisos.push(`⚠️ Corrente de curto-circuito do módulo (${isc}A) supera o Imax MPPT (${imaxMppt}A). Verifique com o fabricante.`);
+  } else if (imaxMppt > 0) {
+    infos.push(`✅ Corrente OK: Isc módulo ${isc}A ≤ ${imaxMppt}A (Imax MPPT)`);
+  }
+
+  // Renderizar resultado
+  if (problemas.length > 0) {
+    box.className = 'validacao-box v-erro';
+    box.innerHTML = `
+      <div class="v-titulo">⛔ KIT INCOMPATÍVEL — Não vender assim!</div>
+      ${problemas.map(p => `<div class="v-linha">${p}</div>`).join('')}
+      ${avisos.map(a => `<div class="v-linha">${a}</div>`).join('')}
+      ${infos.map(i => `<div class="v-linha" style="opacity:.6">${i}</div>`).join('')}
+    `;
+  } else if (avisos.length > 0) {
+    box.className = 'validacao-box v-aviso';
+    box.innerHTML = `
+      <div class="v-titulo">⚠️ KIT COM RESSALVAS — Verifique antes de fechar</div>
+      ${avisos.map(a => `<div class="v-linha">${a}</div>`).join('')}
+      ${infos.map(i => `<div class="v-linha" style="opacity:.8">${i}</div>`).join('')}
+    `;
+  } else {
+    box.className = 'validacao-box v-ok';
+    box.innerHTML = `
+      <div class="v-titulo">✅ KIT COMPATÍVEL — Pode vender!</div>
+      ${infos.map(i => `<div class="v-linha">${i}</div>`).join('')}
+    `;
   }
 }
 
@@ -754,6 +933,12 @@ function filtrarEquip() {
   renderEquip(todosEquip.filter(e => e.nome.toLowerCase().includes(q) || (e.marca||'').toLowerCase().includes(q)));
 }
 
+function mostrarCamposElec() {
+  const tipo = document.getElementById('me-tipo').value;
+  document.getElementById('campos-modulo').classList.toggle('ativa', tipo === 'modulo');
+  document.getElementById('campos-inversor').classList.toggle('ativa', tipo === 'inversor');
+}
+
 function abrirModalEquip(e=null) {
   document.getElementById('me-id').value = e?.id || '';
   document.getElementById('me-tipo').value = e?.tipo || 'modulo';
@@ -762,6 +947,21 @@ function abrirModalEquip(e=null) {
   document.getElementById('me-marca').value = e?.marca || '';
   document.getElementById('me-dist').value = e?.distribuidor || '';
   document.getElementById('me-preco').value = e?.preco || '';
+  // Campos elétricos módulo
+  document.getElementById('me-voc').value = e?.voc || '';
+  document.getElementById('me-vmp').value = e?.vmp || '';
+  document.getElementById('me-isc').value = e?.isc || '';
+  document.getElementById('me-imp').value = e?.imp || '';
+  document.getElementById('me-coef-voc').value = e?.coef_temp_voc || '';
+  document.getElementById('me-noct').value = e?.temp_noct || '';
+  // Campos elétricos inversor
+  document.getElementById('me-nmppt').value = e?.n_mppt || '';
+  document.getElementById('me-stmppt').value = e?.strings_por_mppt || '';
+  document.getElementById('me-vstart').value = e?.v_start || '';
+  document.getElementById('me-vmax').value = e?.v_max_entrada || '';
+  document.getElementById('me-imaxmppt').value = e?.i_max_mppt || '';
+  document.getElementById('me-potac').value = e?.potencia_max_ac || '';
+  mostrarCamposElec();
   document.getElementById('modal-equip').classList.add('aberto');
 }
 
@@ -777,14 +977,30 @@ async function excluirEquip(id) {
 
 async function salvarEquip() {
   const id = document.getElementById('me-id').value;
+  const tipo = document.getElementById('me-tipo').value;
   const dados = {
-    tipo: document.getElementById('me-tipo').value,
+    tipo,
     nome: document.getElementById('me-nome').value.trim(),
     potencia_w: parseFloat(document.getElementById('me-pot').value) || null,
     marca: document.getElementById('me-marca').value,
     distribuidor: document.getElementById('me-dist').value,
     preco: parseFloat(document.getElementById('me-preco').value) || 0,
   };
+  if (tipo === 'modulo') {
+    dados.voc = parseFloat(document.getElementById('me-voc').value) || null;
+    dados.vmp = parseFloat(document.getElementById('me-vmp').value) || null;
+    dados.isc = parseFloat(document.getElementById('me-isc').value) || null;
+    dados.imp = parseFloat(document.getElementById('me-imp').value) || null;
+    dados.coef_temp_voc = parseFloat(document.getElementById('me-coef-voc').value) || null;
+    dados.temp_noct = parseFloat(document.getElementById('me-noct').value) || null;
+  } else {
+    dados.n_mppt = parseInt(document.getElementById('me-nmppt').value) || null;
+    dados.strings_por_mppt = parseInt(document.getElementById('me-stmppt').value) || null;
+    dados.v_start = parseFloat(document.getElementById('me-vstart').value) || null;
+    dados.v_max_entrada = parseFloat(document.getElementById('me-vmax').value) || null;
+    dados.i_max_mppt = parseFloat(document.getElementById('me-imaxmppt').value) || null;
+    dados.potencia_max_ac = parseFloat(document.getElementById('me-potac').value) || null;
+  }
   if (!dados.nome) { toast('Nome é obrigatório!', false); return; }
   if (id) await db.from('equipamentos').update(dados).eq('id', id);
   else await db.from('equipamentos').insert(dados);
