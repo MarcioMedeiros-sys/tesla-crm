@@ -1013,8 +1013,9 @@ function renderEquip(lista) {
       <td>${e.marca||'-'}</td>
       <td>R$ ${(e.preco||0).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="editarEquip('${e.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="excluirEquip('${e.id}')">🗑️</button>
+        <button class="btn btn-secondary btn-sm" onclick="editarEquip('${e.id}')" title="Editar">✏️</button>
+        <button class="btn btn-secondary btn-sm" onclick="duplicarEquip('${e.id}')" title="Duplicar" style="background:#1a3a1a;color:#5bf5a0">⧉</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirEquip('${e.id}')" title="Excluir">🗑️</button>
       </td>
     </tr>`).join('');
 }
@@ -1057,6 +1058,15 @@ function abrirModalEquip(e=null) {
 }
 
 function editarEquip(id) { abrirModalEquip(todosEquip.find(e => e.id===id)); }
+
+function duplicarEquip(id) {
+  const orig = todosEquip.find(e => e.id === id);
+  if (!orig) return;
+  // Copia sem o ID e muda o nome pra sinalizar que é cópia
+  const copia = {...orig, id: undefined, nome: orig.nome + ' (cópia)'};
+  abrirModalEquip(copia);
+  toast('Editando cópia — ajuste o nome/distribuidor e salve!');
+}
 
 async function excluirEquip(id) {
   if (!confirm('Excluir este equipamento?')) return;
@@ -1235,8 +1245,9 @@ function renderKits(lista) {
       <td>${k.potencia_kwp ? k.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
       <td>${k.preco_sugerido ? 'R$ '+k.preco_sugerido.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '-'}</td>
       <td>
-        <button class="btn btn-secondary btn-sm" onclick="editarKit('${k.id}')">✏️</button>
-        <button class="btn btn-danger btn-sm" onclick="excluirKit('${k.id}')">🗑️</button>
+        <button class="btn btn-secondary btn-sm" onclick="editarKit('${k.id}')" title="Editar">✏️</button>
+        <button class="btn btn-secondary btn-sm" onclick="duplicarKit('${k.id}')" title="Duplicar" style="background:#1a3a1a;color:#5bf5a0">⧉</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirKit('${k.id}')" title="Excluir">🗑️</button>
       </td>
     </tr>`).join('');
 }
@@ -1291,6 +1302,14 @@ function abrirModalKit(k=null) {
 }
 
 function editarKit(id) { abrirModalKit(todosKits.find(k => k.id === id)); }
+
+function duplicarKit(id) {
+  const orig = todosKits.find(k => k.id === id);
+  if (!orig) return;
+  const copia = {...orig, id: undefined, nome: orig.nome + ' (cópia)'};
+  abrirModalKit(copia);
+  toast('Editando cópia do kit — ajuste o nome e salve!');
+}
 
 function calcKitPot() {
   const modId = document.getElementById('mk-modulo').value;
