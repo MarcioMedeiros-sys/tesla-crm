@@ -45,12 +45,15 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
 #proposta-wrap{display:none;max-width:794px;margin:0 auto;padding:0 16px 60px}
 
 @media print{
+  @page{size:A4 portrait;margin:0}
   *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  html,body{width:210mm;height:297mm;overflow:visible}
   #painel,#form-wrap,#print-hint{display:none!important}
-  #proposta-wrap{display:block!important;padding:0;margin:0;max-width:100%}
-  .pagina{page-break-after:always;page-break-inside:avoid;box-shadow:none!important;border-radius:0!important}
+  #proposta-wrap{display:block!important;padding:0;margin:0;width:210mm;max-width:210mm}
+  .pagina{page-break-after:always;page-break-inside:avoid;box-shadow:none!important;
+    border-radius:0!important;width:210mm;min-height:297mm;max-height:297mm;overflow:hidden}
   .pagina:last-child{page-break-after:avoid}
-  .capa{max-height:none;min-height:0;height:100vh}
+  .capa{max-height:none;min-height:0;height:297mm}
 }
 
 /* ===== PÁGINAS ===== */
