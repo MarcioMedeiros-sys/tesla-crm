@@ -341,12 +341,44 @@ tr:hover td{background:#1f1f1f}
     <h3>🔧 Equipamento</h3>
     <input type="hidden" id="me-id">
     <div class="form-grid" style="margin-bottom:14px">
-      <div class="form-group"><label>Tipo</label><select id="me-tipo" onchange="mostrarCamposElec()"><option value="modulo">Módulo Fotovoltaico</option><option value="inversor">Inversor</option></select></div>
+      <div class="form-group"><label>Tipo</label><select id="me-tipo" onchange="mostrarCamposElec()">
+        <optgroup label="Geração">
+          <option value="modulo">Módulo Fotovoltaico</option>
+          <option value="inversor">Inversor</option>
+        </optgroup>
+        <optgroup label="Materiais CC (lado solar)">
+          <option value="cabo_cc">Cabo CC</option>
+          <option value="conector">Conector MC4</option>
+          <option value="stringbox">String Box / Proteção CC</option>
+        </optgroup>
+        <optgroup label="Materiais CA (rede elétrica)">
+          <option value="cabo_ca">Cabo CA</option>
+          <option value="disjuntor">Disjuntor / Proteção CA</option>
+          <option value="quadro">Quadro Elétrico</option>
+        </optgroup>
+        <optgroup label="Outros">
+          <option value="estrutura">Estrutura de Fixação</option>
+          <option value="medicao">Medidor / Relé</option>
+          <option value="acessorio">Acessório / Outros</option>
+        </optgroup>
+      </select></div>
       <div class="form-group"><label>Potência (W)</label><input type="number" id="me-pot"></div>
       <div class="form-group" style="grid-column:1/-1"><label>Nome / Descrição *</label><input type="text" id="me-nome" placeholder="Ex: Módulo 550W Risen RSM110-8"></div>
       <div class="form-group"><label>Marca</label><input type="text" id="me-marca"></div>
       <div class="form-group"><label>Distribuidor</label><input type="text" id="me-dist"></div>
       <div class="form-group"><label>Preço (R$)</label><input type="number" id="me-preco" step="0.01"></div>
+      <div class="form-group" id="campo-unidade" style="display:none">
+        <label>Unidade</label>
+        <select id="me-unidade">
+          <option value="un">un (unidade)</option>
+          <option value="m">m (metro)</option>
+          <option value="m2">m² (metro quadrado)</option>
+          <option value="rolo">rolo</option>
+          <option value="par">par</option>
+          <option value="cx">cx (caixa)</option>
+          <option value="kg">kg</option>
+        </select>
+      </div>
     </div>
 
     <!-- CAMPOS MÓDULO -->
@@ -1007,7 +1039,7 @@ function renderEquip(lista) {
   if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum equipamento</td></tr>'; return; }
   tb.innerHTML = lista.map(e => `
     <tr>
-      <td><span class="badge" style="background:${e.tipo==='modulo'?'#1a3a1a':'#1a1a3a'};color:${e.tipo==='modulo'?'#5bf5a0':'#a0a0f5'}">${e.tipo}</span></td>
+      <td><span class="badge" style="background:${badgeBg(e.tipo)};color:${badgeFg(e.tipo)};font-size:.7rem">${badgeLabel(e.tipo)}</span></td>
       <td>${e.nome}</td>
       <td>${e.potencia_w ? e.potencia_w+'W' : '-'}</td>
       <td>${e.marca||'-'}</td>
@@ -1025,10 +1057,35 @@ function filtrarEquip() {
   renderEquip(todosEquip.filter(e => e.nome.toLowerCase().includes(q) || (e.marca||'').toLowerCase().includes(q)));
 }
 
+// Cores e labels dos badges por tipo de equipamento
+function badgeBg(tipo){
+  const m={modulo:'#1a3a1a',inversor:'#1a1a3a',cabo_cc:'#3a2a00',cabo_ca:'#2a1a3a',
+    conector:'#2a2a00',stringbox:'#003a2a',disjuntor:'#2a1a1a',quadro:'#1a2a3a',
+    estrutura:'#2a2a2a',medicao:'#1a3a3a',acessorio:'#2a1a2a'};
+  return m[tipo]||'#2a2a2a';
+}
+function badgeFg(tipo){
+  const m={modulo:'#5bf5a0',inversor:'#a0a0f5',cabo_cc:'#f5d060',cabo_ca:'#d0a0f5',
+    conector:'#f5f560',stringbox:'#60f5d0',disjuntor:'#f59090',quadro:'#90c8f5',
+    estrutura:'#c0c0c0',medicao:'#60f5f5',acessorio:'#f5a0e0'};
+  return m[tipo]||'#c0c0c0';
+}
+function badgeLabel(tipo){
+  const m={modulo:'Módulo',inversor:'Inversor',cabo_cc:'Cabo CC',cabo_ca:'Cabo CA',
+    conector:'Conector',stringbox:'String Box',disjuntor:'Disjuntor',quadro:'Quadro',
+    estrutura:'Estrutura',medicao:'Medidor',acessorio:'Acessório'};
+  return m[tipo]||tipo;
+}
+
 function mostrarCamposElec() {
   const tipo = document.getElementById('me-tipo').value;
   document.getElementById('campos-modulo').classList.toggle('ativa', tipo === 'modulo');
   document.getElementById('campos-inversor').classList.toggle('ativa', tipo === 'inversor');
+  // Unidade visível para materiais e acessórios (não para módulo/inversor)
+  const isMaterial = !['modulo','inversor'].includes(tipo);
+  document.getElementById('campo-unidade').style.display = isMaterial ? '' : 'none';
+  // Potência (W) visível só para módulo e inversor
+  document.getElementById('me-pot').closest('.form-group').style.display = isMaterial ? 'none' : '';
 }
 
 function abrirModalEquip(e=null) {
@@ -1053,6 +1110,7 @@ function abrirModalEquip(e=null) {
   document.getElementById('me-vmax').value = e?.v_max_entrada || '';
   document.getElementById('me-imaxmppt').value = e?.i_max_mppt || '';
   document.getElementById('me-potac').value = e?.potencia_max_ac || '';
+  document.getElementById('me-unidade').value = e?.unidade || 'un';
   mostrarCamposElec();
   document.getElementById('modal-equip').classList.add('aberto');
 }
@@ -1086,6 +1144,7 @@ async function salvarEquip() {
     marca: document.getElementById('me-marca').value,
     distribuidor: document.getElementById('me-dist').value,
     preco: parseFloat(document.getElementById('me-preco').value) || 0,
+    unidade: document.getElementById('me-unidade').value || null,
   };
   if (tipo === 'modulo') {
     dados.voc = parseFloat(document.getElementById('me-voc').value) || null;
@@ -1094,7 +1153,7 @@ async function salvarEquip() {
     dados.imp = parseFloat(document.getElementById('me-imp').value) || null;
     dados.coef_temp_voc = parseFloat(document.getElementById('me-coef-voc').value) || null;
     dados.temp_noct = parseFloat(document.getElementById('me-noct').value) || null;
-  } else {
+  } else if (tipo === 'inversor') {
     dados.n_mppt = parseInt(document.getElementById('me-nmppt').value) || null;
     dados.strings_por_mppt = parseInt(document.getElementById('me-stmppt').value) || null;
     dados.v_start = parseFloat(document.getElementById('me-vstart').value) || null;
@@ -1102,6 +1161,7 @@ async function salvarEquip() {
     dados.i_max_mppt = parseFloat(document.getElementById('me-imaxmppt').value) || null;
     dados.potencia_max_ac = parseFloat(document.getElementById('me-potac').value) || null;
   }
+  // materiais/acessórios: só nome, marca, preço, unidade, distribuidor — sem parâmetros elétricos
   if (!dados.nome) { toast('Nome é obrigatório!', false); return; }
   if (id) await db.from('equipamentos').update(dados).eq('id', id);
   else await db.from('equipamentos').insert(dados);
