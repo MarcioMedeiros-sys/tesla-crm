@@ -1178,11 +1178,50 @@ async function buscarCEP() {
     document.getElementById('p-bairro').value = d.bairro || '';
     document.getElementById('p-cidade').value = d.localidade || '';
     document.getElementById('p-estado').value = d.uf || '';
-    // Irradiação automática pela cidade/UF
-    const irr = getIrradiacao(d.localidade || '', d.uf || '');
-    document.getElementById('p-irr').value = irr;
+
+    // Irradiação: primeiro usa tabela local (rápido), depois atualiza com PVGIS (real)
+    const irrLocal = getIrradiacao(d.localidade || '', d.uf || '');
+    document.getElementById('p-irr').value = irrLocal;
     calcAuto();
+
+    // Busca coordenadas via Nominatim e depois PVGIS
+    buscarIrradiacaoReal(d.localidade, d.uf);
   } catch(e) {}
+}
+
+async function buscarIrradiacaoReal(cidade, uf) {
+  try {
+    // 1) Coordenadas via Nominatim
+    const q = encodeURIComponent(`${cidade}, ${uf}, Brasil`);
+    const geo = await fetch(`https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=1`,
+      {headers:{'User-Agent':'TeslaEnergiaSolar/1.0'}});
+    const gd = await geo.json();
+    if (!gd || !gd[0]) return;
+    const lat = parseFloat(gd[0].lat), lon = parseFloat(gd[0].lon);
+
+    // 2) PVGIS — mesma base que CRESESB
+    let irr = null;
+    try {
+      const pv = await fetch(`https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=${lat}&lon=${lon}&peakpower=1&loss=0&outputformat=json&browser=0`);
+      const pd = await pv.json();
+      const anual = pd?.outputs?.totals?.fixed?.['H(i)_y'];
+      if (anual > 0) irr = anual / 365;
+    } catch(_) {}
+
+    // 3) Fallback NASA POWER se PVGIS falhou
+    if (!irr) {
+      const np = await fetch(`https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${lon}&latitude=${lat}&format=JSON`);
+      const nd = await np.json();
+      const ann = nd?.properties?.parameter?.ALLSKY_SFC_SW_DWN?.ANN;
+      if (ann > 0) irr = ann;
+    }
+
+    if (irr) {
+      document.getElementById('p-irr').value = irr.toFixed(2);
+      calcAuto();
+      toast(`☀️ Irradiação PVGIS para ${cidade}: ${irr.toFixed(2)} kWh/m²/dia`);
+    }
+  } catch(_) { /* mantém valor da tabela local */ }
 }
 
 // ============================================================

@@ -648,35 +648,64 @@ async function buscarCoordenadas(cidade, uf, cep){
 
     const lat=parseFloat(data[0].lat);
     const lon=parseFloat(data[0].lon);
-    const irr=calcularIrradiacao(lat, lon);
 
+    g('cep-status').innerHTML=`🌞 <strong>${cidade}/${uf}</strong> — Consultando PVGIS/NASA...`;
+
+    // Tenta PVGIS (base do CRESESB para Brasil) — retorna irradiação real por coordenada
+    const irr = await buscarIrradiacaoPVGIS(lat, lon);
     g('f-irr').value=irr.toFixed(2);
     g('cep-status').innerHTML=
       `✅ <strong>${cidade}/${uf}</strong> — Lat: ${lat.toFixed(4)}, Lon: ${lon.toFixed(4)} — `+
-      `Irradiação estimada: <strong style="color:#ff6606">${irr.toFixed(2)} kWh/m²/dia</strong>`;
+      `Irradiação PVGIS: <strong style="color:#ff6606">${irr.toFixed(2)} kWh/m²/dia</strong>`;
+    calcAutoSistema();
 
   }catch(err){
-    // Fallback por UF
+    // Fallback por UF (tabela local)
     const irr=irradiacaoPorUF(uf);
     g('f-irr').value=irr.toFixed(2);
     g('cep-status').innerHTML=
-      `⚠ Coordenadas estimadas para ${uf} — Irradiação: <strong style="color:#ff6606">${irr.toFixed(2)} kWh/m²/dia</strong>`;
+      `⚠ PVGIS indisponível — estimativa para ${uf}: <strong style="color:#ff6606">${irr.toFixed(2)} kWh/m²/dia</strong>`;
+    calcAutoSistema();
   }
 }
 
-// Irradiação por latitude — baseado no Atlas Solarimétrico do Brasil
+// Busca irradiação real via PVGIS (Comissão Europeia) — mesma base do CRESESB
+// Retorna média diária anual em kWh/m²/dia para inclinação ótima
+async function buscarIrradiacaoPVGIS(lat, lon){
+  // Tenta PVGIS primeiro
+  try {
+    const url=`https://re.jrc.ec.europa.eu/api/v5_2/PVcalc?lat=${lat}&lon=${lon}&peakpower=1&loss=0&outputformat=json&browser=0`;
+    const res=await fetch(url);
+    if(!res.ok) throw new Error('PVGIS status '+res.status);
+    const d=await res.json();
+    // H(i)_y = irradiação anual total em kWh/m² → dividir por 365 para diária
+    const anual=d?.outputs?.totals?.fixed?.['H(i)_y'];
+    if(anual && anual>0) return anual/365;
+    throw new Error('Sem dado H(i)_y');
+  } catch(e1) {
+    // Fallback: NASA POWER API
+    const url2=`https://power.larc.nasa.gov/api/temporal/climatology/point?parameters=ALLSKY_SFC_SW_DWN&community=RE&longitude=${lon}&latitude=${lat}&format=JSON`;
+    const res2=await fetch(url2);
+    if(!res2.ok) throw new Error('NASA POWER status '+res2.status);
+    const d2=await res2.json();
+    const anual2=d2?.properties?.parameter?.ALLSKY_SFC_SW_DWN?.ANN;
+    if(anual2 && anual2>0) return anual2;
+    throw new Error('Sem dado NASA POWER');
+  }
+}
+
+// Fallback offline por UF quando ambas as APIs falham
 function calcularIrradiacao(lat, lon){
-  // Nordeste tem as maiores irradiações do Brasil
-  if(lat>=-6 && lat<=-2 && lon>=-40 && lon>=-34) return 6.0;  // RN/CE litoral
-  if(lat>=-8 && lat<=-5 && lon>=-40 && lon>=-36) return 5.9;  // RN interior / sertão
-  if(lat>=-5 && lat<=0) return 5.7;  // Norte
-  if(lat>=-10 && lat<=-8) return 5.6; // NE sul / BA norte
-  if(lat>=-15 && lat<=-10) return 5.4; // BA / MG norte
-  if(lat>=-20 && lat<=-15) return 5.2; // MG / ES / RJ
-  if(lat>=-25 && lat<=-20) return 4.9; // SP / GO / MS
-  if(lat>=-30 && lat<=-25) return 4.6; // PR / SC norte
-  if(lat<=-30) return 4.3;             // RS / SC sul
-  return 5.5; // padrão
+  if(lat>=-6 && lat<=-2) return 6.0;
+  if(lat>=-8 && lat<=-5) return 5.9;
+  if(lat>=-5 && lat<=0) return 5.7;
+  if(lat>=-10 && lat<=-8) return 5.6;
+  if(lat>=-15 && lat<=-10) return 5.4;
+  if(lat>=-20 && lat<=-15) return 5.2;
+  if(lat>=-25 && lat<=-20) return 4.9;
+  if(lat>=-30 && lat<=-25) return 4.6;
+  if(lat<=-30) return 4.3;
+  return 5.5;
 }
 
 // Fallback por UF quando Nominatim falha
