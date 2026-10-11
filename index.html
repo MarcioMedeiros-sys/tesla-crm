@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Tesla Energia Solar - CRM</title>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 body{font-family:'Segoe UI',sans-serif;background:#0a0a0a;color:#e0e0e0;display:flex;min-height:100vh}
@@ -133,6 +134,7 @@ tr:hover td{background:#1f1f1f}
     <a onclick="ir('propostas')" id="nav-propostas"><span class="ic">📄</span> Propostas</a>
     <a onclick="ir('nova-proposta')" id="nav-nova-proposta"><span class="ic">➕</span> Nova Proposta</a>
     <a onclick="ir('equipamentos')" id="nav-equipamentos"><span class="ic">🔧</span> Equipamentos</a>
+    <a onclick="ir('kits')" id="nav-kits"><span class="ic">📦</span> Kits Prontos</a>
   </nav>
   <div class="sair-btn">
     <button onclick="sair()">🚪 Sair</button>
@@ -193,6 +195,18 @@ tr:hover td{background:#1f1f1f}
 
     <!-- NOVA PROPOSTA -->
     <div class="secao" id="sec-nova-proposta">
+
+      <!-- ATALHO: USAR KIT PRONTO -->
+      <div class="form-card" style="border-color:#f5a62355;background:#111">
+        <h3>📦 Usar Kit Pronto <span style="color:#666;font-size:.8rem;font-weight:400">(opcional — preenche módulo, inversor e qtd automaticamente)</span></h3>
+        <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
+          <select id="p-kit" onchange="aplicarKit()" style="flex:1;min-width:220px;padding:10px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.9rem">
+            <option value="">-- Selecionar um kit salvo --</option>
+          </select>
+          <span id="kit-info" style="color:#888;font-size:.85rem"></span>
+        </div>
+      </div>
+
       <div class="form-card">
         <h3>📋 Dados do Cliente</h3>
         <div class="form-grid">
@@ -262,11 +276,29 @@ tr:hover td{background:#1f1f1f}
       </div>
     </div>
 
+    <!-- KITS PRONTOS -->
+    <div class="secao" id="sec-kits">
+      <div class="barra-busca">
+        <input type="text" placeholder="Buscar kit..." id="busca-kit" oninput="filtrarKits()">
+        <button class="btn btn-primary" onclick="abrirModalKit()">+ Novo Kit</button>
+      </div>
+      <div class="tabela-wrap">
+        <table>
+          <thead><tr><th>Nome do Kit</th><th>Módulo</th><th>Inversor</th><th>Qtd Mód.</th><th>Potência</th><th>Preço Sug.</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-kits"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
     <!-- EQUIPAMENTOS -->
     <div class="secao" id="sec-equipamentos">
       <div class="barra-busca">
         <input type="text" placeholder="Buscar equipamento..." id="busca-equip" oninput="filtrarEquip()">
         <button class="btn btn-primary" onclick="abrirModalEquip()">+ Novo Equipamento</button>
+        <label class="btn btn-secondary" style="cursor:pointer" title="Importar módulos e inversores da planilha Excel">
+          📥 Importar Excel
+          <input type="file" id="import-excel" accept=".xlsx,.xls" style="display:none" onchange="importarExcel(this)">
+        </label>
       </div>
       <div class="tabela-wrap">
         <table>
@@ -386,6 +418,64 @@ tr:hover td{background:#1f1f1f}
   </div>
 </div>
 
+<!-- MODAL KIT -->
+<div class="modal-bg" id="modal-kit">
+  <div class="modal" style="max-width:560px">
+    <h3>📦 Kit Pronto</h3>
+    <input type="hidden" id="mk-id">
+    <div class="form-grid">
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Nome do Kit *</label>
+        <input type="text" id="mk-nome" placeholder="Ex: Kit Residencial 5kWp — Deye 5kW + Risen 550W">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Descrição (opcional)</label>
+        <input type="text" id="mk-desc" placeholder="Ex: Ideal para consumo mensal de 350-450 kWh">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Módulo Fotovoltaico</label>
+        <select id="mk-modulo" onchange="calcKitPot()">
+          <option value="">-- Selecionar módulo --</option>
+        </select>
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>Inversor</label>
+        <select id="mk-inversor">
+          <option value="">-- Selecionar inversor --</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Qtd de Módulos</label>
+        <input type="number" id="mk-nmods" placeholder="ex: 10" oninput="calcKitPot()">
+      </div>
+      <div class="form-group">
+        <label>Potência do Kit (kWp)</label>
+        <input type="number" id="mk-kwp" placeholder="calculado" step="0.01" readonly style="background:#0a0a1a;color:#f5a623">
+      </div>
+      <div class="form-group">
+        <label>Preço Sugerido (R$)</label>
+        <input type="number" id="mk-preco" placeholder="0,00" step="0.01">
+      </div>
+    </div>
+    <div id="kit-validacao" style="margin-top:12px"></div>
+    <div class="modal-btns">
+      <button class="btn btn-secondary" onclick="fecharModal('modal-kit')">Cancelar</button>
+      <button class="btn btn-primary" onclick="salvarKit()">Salvar Kit</button>
+    </div>
+  </div>
+</div>
+
+<!-- MODAL IMPORTAR EXCEL -->
+<div class="modal-bg" id="modal-import">
+  <div class="modal" style="max-width:560px">
+    <h3>📥 Importando do Excel...</h3>
+    <div id="import-log" style="background:#0d0d1a;border-radius:8px;padding:16px;min-height:120px;font-size:.82rem;color:#aaa;font-family:monospace;max-height:300px;overflow-y:auto"></div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" id="btn-fechar-import" style="display:none" onclick="fecharModal('modal-import');carregarEquipamentos();popularSelectsEquip()">✅ Concluído — Fechar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOAST -->
 <div id="toast"></div>
 
@@ -435,15 +525,16 @@ async function init() {
     console.error(e);
   }
   await Promise.all([carregarDashboard(), carregarClientes(), carregarPropostas(), carregarEquipamentos()]);
-  popularSelectsEquip();
+  await popularSelectsEquip();
   popularSelectClientes();
+  carregarKits();
 }
 
 // ============================================================
 // NAVEGAÇÃO
 // ============================================================
 let secaoAtual = 'dashboard';
-const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos'};
+const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos',kits:'📦 Kits Prontos'};
 
 function ir(sec) {
   document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
@@ -1112,6 +1203,247 @@ function getIrradiacao(cidade, uf) {
     if (cidadeLower.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))) return v;
   }
   return porUF[uf] || 5.0;
+}
+
+// ============================================================
+// KITS PRONTOS
+// ============================================================
+let todosKits = [];
+
+async function carregarKits() {
+  const { data } = await db.from('kits')
+    .select('*,mod:modulo_id(nome,potencia_w),inv:inversor_id(nome)')
+    .eq('ativo', true)
+    .order('nome');
+  todosKits = data || [];
+  renderKits(todosKits);
+  popularSelectKits();
+}
+
+function renderKits(lista) {
+  const tb = document.getElementById('tabela-kits');
+  if (!lista.length) {
+    tb.innerHTML = '<tr><td colspan="7" class="vazio"><div class="ic">📦</div>Nenhum kit cadastrado ainda</td></tr>';
+    return;
+  }
+  tb.innerHTML = lista.map(k => `
+    <tr>
+      <td><strong>${k.nome}</strong>${k.descricao ? '<br><small style="color:#777">'+k.descricao+'</small>' : ''}</td>
+      <td>${k.mod?.nome||'-'}</td>
+      <td>${k.inv?.nome||'-'}</td>
+      <td style="text-align:center">${k.n_modulos||'-'}</td>
+      <td>${k.potencia_kwp ? k.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
+      <td>${k.preco_sugerido ? 'R$ '+k.preco_sugerido.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '-'}</td>
+      <td>
+        <button class="btn btn-secondary btn-sm" onclick="editarKit('${k.id}')">✏️</button>
+        <button class="btn btn-danger btn-sm" onclick="excluirKit('${k.id}')">🗑️</button>
+      </td>
+    </tr>`).join('');
+}
+
+function filtrarKits() {
+  const q = document.getElementById('busca-kit').value.toLowerCase();
+  renderKits(todosKits.filter(k => k.nome.toLowerCase().includes(q)));
+}
+
+function popularSelectKits() {
+  const sel = document.getElementById('p-kit');
+  if (!sel) return;
+  const v = sel.value;
+  sel.innerHTML = '<option value="">-- Selecionar um kit salvo --</option>' +
+    todosKits.map(k => `<option value="${k.id}">${k.nome}${k.potencia_kwp?' ('+k.potencia_kwp.toFixed(2)+' kWp)':''}</option>`).join('');
+  if (v) sel.value = v;
+}
+
+function aplicarKit() {
+  const id = document.getElementById('p-kit').value;
+  if (!id) { document.getElementById('kit-info').textContent = ''; return; }
+  const kit = todosKits.find(k => k.id === id);
+  if (!kit) return;
+  if (kit.modulo_id) document.getElementById('p-modulo').value = kit.modulo_id;
+  if (kit.inversor_id) document.getElementById('p-inversor').value = kit.inversor_id;
+  if (kit.n_modulos) document.getElementById('p-nmods').value = kit.n_modulos;
+  if (kit.preco_sugerido) document.getElementById('p-valor').value = kit.preco_sugerido;
+  document.getElementById('kit-info').textContent = kit.descricao || '';
+  calcAuto();
+  toast('Kit "' + kit.nome + '" aplicado!');
+}
+
+function abrirModalKit(k=null) {
+  // Popular selects do modal
+  const mods = equipData.filter(e => e.tipo === 'modulo');
+  const invs = equipData.filter(e => e.tipo === 'inversor');
+  document.getElementById('mk-modulo').innerHTML = '<option value="">-- Selecionar módulo --</option>' +
+    mods.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
+  document.getElementById('mk-inversor').innerHTML = '<option value="">-- Selecionar inversor --</option>' +
+    invs.map(i => `<option value="${i.id}">${i.nome}</option>`).join('');
+
+  document.getElementById('mk-id').value = k?.id || '';
+  document.getElementById('mk-nome').value = k?.nome || '';
+  document.getElementById('mk-desc').value = k?.descricao || '';
+  document.getElementById('mk-modulo').value = k?.modulo_id || '';
+  document.getElementById('mk-inversor').value = k?.inversor_id || '';
+  document.getElementById('mk-nmods').value = k?.n_modulos || '';
+  document.getElementById('mk-kwp').value = k?.potencia_kwp || '';
+  document.getElementById('mk-preco').value = k?.preco_sugerido || '';
+  document.getElementById('kit-validacao').innerHTML = '';
+  document.getElementById('modal-kit').classList.add('aberto');
+}
+
+function editarKit(id) { abrirModalKit(todosKits.find(k => k.id === id)); }
+
+function calcKitPot() {
+  const modId = document.getElementById('mk-modulo').value;
+  const nMods = parseInt(document.getElementById('mk-nmods').value) || 0;
+  if (!modId || !nMods) return;
+  const mod = equipData.find(e => e.id === modId);
+  if (mod?.potencia_w) {
+    const kwp = (mod.potencia_w * nMods) / 1000;
+    document.getElementById('mk-kwp').value = kwp.toFixed(2);
+  }
+  // Validação rápida no modal
+  const invId = document.getElementById('mk-inversor').value;
+  const inv = equipData.find(e => e.id === invId);
+  const div = document.getElementById('kit-validacao');
+  if (mod && inv && nMods) {
+    const vStr = nMods * (mod.vmp || 0);
+    const vStart = inv.v_start || 0;
+    if (vStart && vStr < vStart) {
+      div.innerHTML = `<div style="background:#2b0d0d;border:1px solid #e74c3c;border-radius:6px;padding:10px;font-size:.82rem;color:#e74c3c">⛔ Vstring (${vStr.toFixed(0)}V) < Vstart (${vStart}V) — Kit incompatível!</div>`;
+    } else {
+      div.innerHTML = `<div style="background:#0d2b0d;border:1px solid #2ecc71;border-radius:6px;padding:10px;font-size:.82rem;color:#2ecc71">✅ Compatibilidade elétrica OK</div>`;
+    }
+  }
+}
+
+async function salvarKit() {
+  const id = document.getElementById('mk-id').value;
+  const modId = document.getElementById('mk-modulo').value || null;
+  const invId = document.getElementById('mk-inversor').value || null;
+  const nMods = parseInt(document.getElementById('mk-nmods').value) || null;
+  const kwp = parseFloat(document.getElementById('mk-kwp').value) || null;
+  const dados = {
+    nome: document.getElementById('mk-nome').value.trim(),
+    descricao: document.getElementById('mk-desc').value.trim() || null,
+    modulo_id: modId,
+    inversor_id: invId,
+    n_modulos: nMods,
+    potencia_kwp: kwp,
+    preco_sugerido: parseFloat(document.getElementById('mk-preco').value) || null,
+    atualizado_em: new Date().toISOString()
+  };
+  if (!dados.nome) { toast('Nome do kit é obrigatório!', false); return; }
+  if (id) await db.from('kits').update(dados).eq('id', id);
+  else await db.from('kits').insert(dados);
+  toast('Kit salvo!');
+  fecharModal('modal-kit');
+  carregarKits();
+}
+
+async function excluirKit(id) {
+  if (!confirm('Excluir este kit?')) return;
+  await db.from('kits').update({ativo: false}).eq('id', id);
+  toast('Kit removido');
+  carregarKits();
+}
+
+// ============================================================
+// IMPORTAR EXCEL
+// ============================================================
+async function importarExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+
+  document.getElementById('modal-import').classList.add('aberto');
+  const log = document.getElementById('import-log');
+  log.innerHTML = '';
+  document.getElementById('btn-fechar-import').style.display = 'none';
+
+  function logMsg(msg, cor='#aaa') {
+    log.innerHTML += `<div style="color:${cor};margin-bottom:4px">${msg}</div>`;
+    log.scrollTop = log.scrollHeight;
+  }
+
+  try {
+    logMsg('📂 Lendo arquivo: ' + file.name);
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, {type:'array'});
+    logMsg('✅ Arquivo lido. Abas encontradas: ' + wb.SheetNames.join(', '), '#f5a623');
+
+    let modImport = 0, invImport = 0, erros = 0;
+
+    // === ABA MÓDULOS ===
+    const abaModulo = wb.SheetNames.find(s => s.toUpperCase().includes('MODU') || s.toUpperCase().includes('MÓDULO'));
+    if (abaModulo) {
+      logMsg(`\n📋 Processando aba "${abaModulo}"...`);
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[abaModulo], {defval:''});
+      logMsg(`  ${rows.length} linhas encontradas`);
+
+      for (const r of rows) {
+        // Tentar mapear colunas flexivelmente
+        const nome = r['NOME'] || r['Nome'] || r['MODELO'] || r['Modelo'] || r['DESCRIÇÃO'] || r['Descrição'] || '';
+        const marca = r['MARCA'] || r['Marca'] || r['FABRICANTE'] || r['Fabricante'] || '';
+        const pot = parseFloat(r['POTÊNCIA'] || r['Potência'] || r['POTENCIA'] || r['Potencia'] || r['Wp'] || r['WP'] || r['W'] || 0) || null;
+        const voc = parseFloat(r['VOC'] || r['Voc'] || r['V OC'] || r['VCA'] || 0) || null;
+        const vmp = parseFloat(r['VMP'] || r['Vmp'] || r['V MP'] || r['VMPP'] || r['Vmpp'] || 0) || null;
+        const isc = parseFloat(r['ISC'] || r['Isc'] || r['I SC'] || r['ICC'] || 0) || null;
+        const imp = parseFloat(r['IMP'] || r['Imp'] || r['I MP'] || r['IMPP'] || r['Impp'] || 0) || null;
+        const preco = parseFloat(r['PREÇO'] || r['Preço'] || r['PRECO'] || r['Preco'] || r['VALOR'] || r['Valor'] || 0) || 0;
+        const dist = r['DISTRIBUIDOR'] || r['Distribuidor'] || r['FORNECEDOR'] || '';
+
+        if (!nome || typeof nome !== 'string' || nome.trim() === '') continue;
+
+        try {
+          const dados = { tipo:'modulo', nome:nome.trim(), marca:marca||null, potencia_w:pot, voc, vmp, isc, imp, preco, distribuidor:dist||null };
+          const { error } = await db.from('equipamentos').upsert(dados, {onConflict:'nome,tipo', ignoreDuplicates:false});
+          if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
+          else { logMsg(`  ✅ Módulo: ${nome}`, '#2ecc71'); modImport++; }
+        } catch(e) { erros++; }
+      }
+    } else {
+      logMsg('ℹ️ Aba de módulos não encontrada (esperado: "MÓDULOS", "MODULOS" ou similar)', '#888');
+    }
+
+    // === ABA INVERSORES ===
+    const abaInv = wb.SheetNames.find(s => s.toUpperCase().includes('INVER'));
+    if (abaInv) {
+      logMsg(`\n📋 Processando aba "${abaInv}"...`);
+      const rows = XLSX.utils.sheet_to_json(wb.Sheets[abaInv], {defval:''});
+      logMsg(`  ${rows.length} linhas encontradas`);
+
+      for (const r of rows) {
+        const nome = r['NOME'] || r['Nome'] || r['MODELO'] || r['Modelo'] || r['DESCRIÇÃO'] || r['Descrição'] || '';
+        const marca = r['MARCA'] || r['Marca'] || r['FABRICANTE'] || '';
+        const pot = parseFloat(r['POTÊNCIA AC'] || r['Potência AC'] || r['POTENCIA'] || r['Potencia'] || r['W'] || r['KW'] || 0) || null;
+        const nmppt = parseInt(r['N MPPT'] || r['Nº MPPT'] || r['MPPT'] || r['N_MPPT'] || 0) || null;
+        const stmppt = parseInt(r['STRINGS/MPPT'] || r['Strings/MPPT'] || r['STR MPPT'] || 1) || null;
+        const vstart = parseFloat(r['VSTART'] || r['Vstart'] || r['V START'] || r['V_START'] || r['TENSÃO START'] || 0) || null;
+        const vmax = parseFloat(r['VMAX'] || r['Vmax'] || r['V MAX'] || r['V_MAX'] || r['TENSÃO MAX CC'] || 0) || null;
+        const imaxmppt = parseFloat(r['IMAX MPPT'] || r['Imax MPPT'] || r['I MAX MPPT'] || r['CORRENTE MAX'] || 0) || null;
+        const preco = parseFloat(r['PREÇO'] || r['Preço'] || r['PRECO'] || r['VALOR'] || 0) || 0;
+        const dist = r['DISTRIBUIDOR'] || r['Distribuidor'] || r['FORNECEDOR'] || '';
+
+        if (!nome || typeof nome !== 'string' || nome.trim() === '') continue;
+
+        try {
+          const dados = { tipo:'inversor', nome:nome.trim(), marca:marca||null, potencia_w:pot, n_mppt:nmppt, strings_por_mppt:stmppt, v_start:vstart, v_max_entrada:vmax, i_max_mppt:imaxmppt, preco, distribuidor:dist||null };
+          const { error } = await db.from('equipamentos').upsert(dados, {onConflict:'nome,tipo', ignoreDuplicates:false});
+          if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
+          else { logMsg(`  ✅ Inversor: ${nome}`, '#2ecc71'); invImport++; }
+        } catch(e) { erros++; }
+      }
+    } else {
+      logMsg('ℹ️ Aba de inversores não encontrada (esperado: "INVERSORES" ou similar)', '#888');
+    }
+
+    logMsg(`\n🏁 Concluído! Módulos: ${modImport} | Inversores: ${invImport} | Erros: ${erros}`, '#f5a623');
+
+  } catch(e) {
+    logMsg('❌ Erro ao processar arquivo: ' + e.message, '#e74c3c');
+  }
+
+  document.getElementById('btn-fechar-import').style.display = 'block';
 }
 
 async function buscarCEPModal() {
