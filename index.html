@@ -1396,9 +1396,17 @@ async function importarExcel(input) {
 
         try {
           const dados = { tipo:'modulo', nome:nome.trim(), marca:marca||null, potencia_w:pot, voc, vmp, isc, imp, preco, distribuidor:dist||null };
-          const { error } = await db.from('equipamentos').upsert(dados, {onConflict:'nome,tipo', ignoreDuplicates:false});
-          if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
-          else { logMsg(`  ✅ Módulo: ${nome}`, '#2ecc71'); modImport++; }
+          // Verificar se já existe
+          const { data: exist } = await db.from('equipamentos').select('id').eq('nome', dados.nome).eq('tipo','modulo').maybeSingle();
+          if (exist) {
+            await db.from('equipamentos').update(dados).eq('id', exist.id);
+            logMsg(`  🔄 Módulo atualizado: ${nome}`, '#f5a623');
+          } else {
+            const { error } = await db.from('equipamentos').insert(dados);
+            if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
+            else { logMsg(`  ✅ Módulo: ${nome}`, '#2ecc71'); }
+          }
+          modImport++;
         } catch(e) { erros++; }
       }
     } else {
@@ -1428,9 +1436,16 @@ async function importarExcel(input) {
 
         try {
           const dados = { tipo:'inversor', nome:nome.trim(), marca:marca||null, potencia_w:pot, n_mppt:nmppt, strings_por_mppt:stmppt, v_start:vstart, v_max_entrada:vmax, i_max_mppt:imaxmppt, preco, distribuidor:dist||null };
-          const { error } = await db.from('equipamentos').upsert(dados, {onConflict:'nome,tipo', ignoreDuplicates:false});
-          if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
-          else { logMsg(`  ✅ Inversor: ${nome}`, '#2ecc71'); invImport++; }
+          const { data: exist } = await db.from('equipamentos').select('id').eq('nome', dados.nome).eq('tipo','inversor').maybeSingle();
+          if (exist) {
+            await db.from('equipamentos').update(dados).eq('id', exist.id);
+            logMsg(`  🔄 Inversor atualizado: ${nome}`, '#f5a623');
+          } else {
+            const { error } = await db.from('equipamentos').insert(dados);
+            if (error) { logMsg(`  ⚠️ ${nome}: ${error.message}`, '#f5a623'); erros++; }
+            else { logMsg(`  ✅ Inversor: ${nome}`, '#2ecc71'); }
+          }
+          invImport++;
         } catch(e) { erros++; }
       }
     } else {
