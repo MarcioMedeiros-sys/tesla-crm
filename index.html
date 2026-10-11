@@ -168,13 +168,17 @@ tr:hover td{background:#1f1f1f}
     <!-- CLIENTES -->
     <div class="secao" id="sec-clientes">
       <div class="barra-busca">
-        <input type="text" placeholder="Buscar cliente..." id="busca-cliente" oninput="filtrarClientes()">
-        <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo Cliente</button>
+        <input type="text" placeholder="Buscar cliente, cidade, inversor..." id="busca-cliente" oninput="filtrarClientes()">
+        <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo</button>
+        <label class="btn btn-secondary" style="cursor:pointer" title="Importar planilha Excel">
+          📥 Importar Excel
+          <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarClientesExcel(this)">
+        </label>
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>Telefone</th><th>Email</th><th>Cidade</th><th>Ações</th></tr></thead>
-          <tbody id="tabela-clientes"><tr><td colspan="5" class="vazio">Carregando...</td></tr></tbody>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade</th><th>Potência</th><th>Inversor</th><th>Ano</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-clientes"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -313,20 +317,43 @@ tr:hover td{background:#1f1f1f}
 
 <!-- MODAL CLIENTE -->
 <div class="modal-bg" id="modal-cliente">
-  <div class="modal">
+  <div class="modal" style="max-width:640px">
     <h3>👤 Cadastro de Cliente</h3>
     <input type="hidden" id="mc-id">
-    <div class="form-grid">
-      <div class="form-group" style="grid-column:1/-1"><label>Nome *</label><input type="text" id="mc-nome"></div>
-      <div class="form-group"><label>Telefone</label><input type="text" id="mc-tel"></div>
-      <div class="form-group"><label>Email</label><input type="email" id="mc-email"></div>
-      <div class="form-group"><label>CPF/CNPJ</label><input type="text" id="mc-doc"></div>
-      <div class="form-group"><label>CEP</label><input type="text" id="mc-cep" maxlength="9" oninput="mascCEP(this)" onblur="buscarCEPModal()" onchange="buscarCEPModal()"></div>
-      <div class="form-group"><label>Logradouro</label><input type="text" id="mc-rua"></div>
-      <div class="form-group"><label>Número</label><input type="text" id="mc-num"></div>
-      <div class="form-group"><label>Bairro</label><input type="text" id="mc-bairro"></div>
-      <div class="form-group"><label>Cidade</label><input type="text" id="mc-cidade"></div>
-      <div class="form-group"><label>Estado</label><input type="text" id="mc-estado" maxlength="2"></div>
+    <div class="modal-tabs">
+      <div class="modal-tab ativo" onclick="abaModalCliente('dados')">Dados Pessoais</div>
+      <div class="modal-tab" onclick="abaModalCliente('sistema')">Sistema Solar</div>
+    </div>
+    <!-- ABA DADOS PESSOAIS -->
+    <div class="secao-campos ativa" id="mc-tab-dados">
+      <div class="form-grid">
+        <div class="form-group" style="grid-column:1/-1"><label>Nome *</label><input type="text" id="mc-nome"></div>
+        <div class="form-group"><label>Telefone</label><input type="text" id="mc-tel"></div>
+        <div class="form-group"><label>Email</label><input type="email" id="mc-email"></div>
+        <div class="form-group"><label>CPF/CNPJ</label><input type="text" id="mc-doc"></div>
+        <div class="form-group"><label>UC Geradora</label><input type="text" id="mc-uc" placeholder="Nº da unidade consumidora"></div>
+        <div class="form-group"><label>CEP</label><input type="text" id="mc-cep" maxlength="9" oninput="mascCEP(this)" onblur="buscarCEPModal()" onchange="buscarCEPModal()"></div>
+        <div class="form-group"><label>Logradouro</label><input type="text" id="mc-rua"></div>
+        <div class="form-group"><label>Número</label><input type="text" id="mc-num"></div>
+        <div class="form-group"><label>Bairro</label><input type="text" id="mc-bairro"></div>
+        <div class="form-group"><label>Cidade</label><input type="text" id="mc-cidade"></div>
+        <div class="form-group"><label>Estado</label><input type="text" id="mc-estado" maxlength="2"></div>
+      </div>
+    </div>
+    <!-- ABA SISTEMA SOLAR -->
+    <div class="secao-campos" id="mc-tab-sistema">
+      <div class="form-grid">
+        <div class="form-group"><label>Potência (kWp)</label><input type="number" id="mc-pot" step="0.01"></div>
+        <div class="form-group"><label>Ano de Instalação</label><input type="number" id="mc-ano" min="2015" max="2030"></div>
+        <div class="form-group"><label>Nº Solicitação / Parecer</label><input type="text" id="mc-nsolic"></div>
+        <div class="form-group"><label>Fabricante Inversor</label><input type="text" id="mc-fab-inv"></div>
+        <div class="form-group"><label>Modelo Inversor</label><input type="text" id="mc-mod-inv"></div>
+        <div class="form-group"><label>Qtd Inversores</label><input type="number" id="mc-qtd-inv" min="1"></div>
+        <div class="form-group"><label>Fabricante Módulos</label><input type="text" id="mc-fab-mod"></div>
+        <div class="form-group"><label>Modelo Módulos</label><input type="text" id="mc-mod-mod"></div>
+        <div class="form-group"><label>Qtd Módulos</label><input type="number" id="mc-qtd-mod" min="1"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Link do Parecer</label><input type="url" id="mc-link" placeholder="https://drive.google.com/..."></div>
+      </div>
     </div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="fecharModal('modal-cliente')">Cancelar</button>
@@ -630,15 +657,18 @@ async function carregarClientes() {
 
 function renderClientes(lista) {
   const tb = document.getElementById('tabela-clientes');
-  if (!lista.length) { tb.innerHTML = '<tr><td colspan="5" class="vazio"><div class="ic">👥</div>Nenhum cliente cadastrado</td></tr>'; return; }
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" class="vazio"><div class="ic">👥</div>Nenhum cliente cadastrado</td></tr>'; return; }
   tb.innerHTML = lista.map(c => `
     <tr>
-      <td>${c.nome}</td>
+      <td><strong>${c.nome}</strong>${c.uc_geradora?'<br><small style="color:#666">UC: '+c.uc_geradora+'</small>':''}</td>
       <td>${c.telefone||'-'}</td>
-      <td>${c.email||'-'}</td>
-      <td>${c.cidade||'-'}</td>
+      <td>${c.cidade||'-'}${c.estado?'/'+c.estado:''}</td>
+      <td>${c.potencia_kwp ? c.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
+      <td style="font-size:.8rem">${c.fabricante_inversor||''} ${c.modelo_inversor||''||'-'}</td>
+      <td>${c.ano_instalacao||'-'}</td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="editarCliente('${c.id}')">✏️</button>
+        ${c.link_parecer?`<a href="${c.link_parecer}" target="_blank" class="btn btn-sm" style="background:#1a3a5c;color:#5ba3f5">📋</a>`:''}
         <button class="btn btn-danger btn-sm" onclick="excluirCliente('${c.id}')">🗑️</button>
       </td>
     </tr>`).join('');
@@ -646,14 +676,33 @@ function renderClientes(lista) {
 
 function filtrarClientes() {
   const q = document.getElementById('busca-cliente').value.toLowerCase();
-  renderClientes(todosClientes.filter(c => c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q)));
+  renderClientes(todosClientes.filter(c =>
+    c.nome.toLowerCase().includes(q) ||
+    (c.telefone||'').includes(q) ||
+    (c.cidade||'').toLowerCase().includes(q) ||
+    (c.fabricante_inversor||'').toLowerCase().includes(q) ||
+    (c.modelo_inversor||'').toLowerCase().includes(q) ||
+    (c.uc_geradora||'').includes(q)
+  ));
+}
+
+function abaModalCliente(aba) {
+  document.querySelectorAll('#modal-cliente .modal-tab').forEach((t,i) => t.classList.toggle('ativo', (i===0&&aba==='dados')||(i===1&&aba==='sistema')));
+  document.getElementById('mc-tab-dados').classList.toggle('ativa', aba==='dados');
+  document.getElementById('mc-tab-sistema').classList.toggle('ativa', aba==='sistema');
 }
 
 function abrirModalCliente(c=null) {
-  ['id','nome','tel','email','doc','cep','rua','num','bairro','cidade','estado'].forEach(f => {
+  const map = {id:'id',nome:'nome',tel:'telefone',email:'email',doc:'cpf_cnpj',uc:'uc_geradora',
+    cep:'cep',rua:'logradouro',num:'numero',bairro:'bairro',cidade:'cidade',estado:'estado',
+    pot:'potencia_kwp',ano:'ano_instalacao',nsolic:'n_solicitacao',
+    'fab-inv':'fabricante_inversor','mod-inv':'modelo_inversor','qtd-inv':'qtd_inversores',
+    'fab-mod':'fabricante_modulos','mod-mod':'modelo_modulos','qtd-mod':'qtd_modulos',link:'link_parecer'};
+  Object.entries(map).forEach(([f,col]) => {
     const el = document.getElementById('mc-'+f);
-    el.value = c ? (c[{id:'id',nome:'nome',tel:'telefone',email:'email',doc:'cpf_cnpj',cep:'cep',rua:'logradouro',num:'numero',bairro:'bairro',cidade:'cidade',estado:'estado'}[f]]||'') : '';
+    if (el) el.value = c ? (c[col]||'') : '';
   });
+  abaModalCliente('dados');
   document.getElementById('modal-cliente').classList.add('aberto');
 }
 
@@ -672,17 +721,29 @@ async function excluirCliente(id) {
 
 async function salvarCliente() {
   const id = document.getElementById('mc-id').value;
+  const g = id => document.getElementById(id)?.value || null;
   const dados = {
-    nome: document.getElementById('mc-nome').value.trim(),
-    telefone: document.getElementById('mc-tel').value,
-    email: document.getElementById('mc-email').value,
-    cpf_cnpj: document.getElementById('mc-doc').value,
-    cep: document.getElementById('mc-cep').value,
-    logradouro: document.getElementById('mc-rua').value,
-    numero: document.getElementById('mc-num').value,
-    bairro: document.getElementById('mc-bairro').value,
-    cidade: document.getElementById('mc-cidade').value,
-    estado: document.getElementById('mc-estado').value,
+    nome: g('mc-nome')?.trim(),
+    telefone: g('mc-tel'),
+    email: g('mc-email'),
+    cpf_cnpj: g('mc-doc'),
+    uc_geradora: g('mc-uc'),
+    cep: g('mc-cep'),
+    logradouro: g('mc-rua'),
+    numero: g('mc-num'),
+    bairro: g('mc-bairro'),
+    cidade: g('mc-cidade'),
+    estado: g('mc-estado'),
+    potencia_kwp: parseFloat(g('mc-pot')) || null,
+    ano_instalacao: parseInt(g('mc-ano')) || null,
+    n_solicitacao: g('mc-nsolic'),
+    fabricante_inversor: g('mc-fab-inv'),
+    modelo_inversor: g('mc-mod-inv'),
+    qtd_inversores: parseInt(g('mc-qtd-inv')) || null,
+    fabricante_modulos: g('mc-fab-mod'),
+    modelo_modulos: g('mc-mod-mod'),
+    qtd_modulos: parseInt(g('mc-qtd-mod')) || null,
+    link_parecer: g('mc-link'),
     atualizado_em: new Date().toISOString()
   };
   if (!dados.nome) { toast('Nome é obrigatório!', false); return; }
@@ -692,6 +753,73 @@ async function salvarCliente() {
   fecharModal('modal-cliente');
   carregarClientes();
   popularSelectClientes();
+}
+
+// ============================================================
+// IMPORTAR CLIENTES EXCEL
+// ============================================================
+async function importarClientesExcel(input) {
+  const file = input.files[0];
+  if (!file) return;
+  input.value = '';
+  toast('Lendo arquivo...');
+  const reader = new FileReader();
+  reader.onload = async e => {
+    try {
+      const wb = XLSX.read(e.target.result, {type:'array'});
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, {header:1, defval:''});
+      if (rows.length < 2) { toast('Planilha vazia!', false); return; }
+
+      // Cabeçalho na linha 0 — mapeamento posicional confirmado:
+      // 0:Ano, 1:N_Solic, 2:Nome, 3:CPF_CNPJ, 4:UC, 5:Potencia_kW,
+      // 6:Email, 7:Telefone, 8:Logradouro, 9:Numero, 10:Bairro,
+      // 11:Cidade, 12:CEP, 13:Fab_Inv, 14:Mod_Inv, 15:Qtd_Inv,
+      // 16:Fab_Mod, 17:Mod_Mod, 18:Qtd_Mod, 19:Fonte, 20:Link
+      const dataRows = rows.slice(1).filter(r => String(r[2]||'').trim());
+
+      const lote = dataRows.map(r => ({
+        nome: String(r[2]||'').trim(),
+        cpf_cnpj: String(r[3]||'').trim() || null,
+        uc_geradora: String(r[4]||'').trim() || null,
+        potencia_kwp: parseFloat(r[5]) || null,
+        email: String(r[6]||'').trim() || null,
+        telefone: String(r[7]||'').trim() || null,
+        logradouro: String(r[8]||'').trim() || null,
+        numero: String(r[9]||'').trim() || null,
+        bairro: String(r[10]||'').trim() || null,
+        cidade: String(r[11]||'').trim() || null,
+        cep: String(r[12]||'').replace(/\D/g,'') || null,
+        fabricante_inversor: String(r[13]||'').trim() || null,
+        modelo_inversor: String(r[14]||'').trim() || null,
+        qtd_inversores: parseInt(r[15]) || null,
+        fabricante_modulos: String(r[16]||'').trim() || null,
+        modelo_modulos: String(r[17]||'').trim() || null,
+        qtd_modulos: parseInt(r[18]) || null,
+        ano_instalacao: parseInt(r[0]) || null,
+        n_solicitacao: String(r[1]||'').trim() || null,
+        link_parecer: String(r[20]||'').trim() || null,
+        atualizado_em: new Date().toISOString()
+      }));
+
+      // Upsert em lotes de 100 (evita timeout)
+      let ok = 0, err = 0;
+      for (let i = 0; i < lote.length; i += 100) {
+        const chunk = lote.slice(i, i+100);
+        const { error } = await db.from('clientes').upsert(chunk, {onConflict:'cpf_cnpj', ignoreDuplicates:false});
+        if (error) { console.error(error); err += chunk.length; }
+        else ok += chunk.length;
+        toast(`Importando... ${Math.min(i+100, lote.length)}/${lote.length}`);
+      }
+      toast(`✅ ${ok} clientes importados${err?', '+err+' erros':''}`);
+      carregarClientes();
+      popularSelectClientes();
+    } catch(ex) {
+      console.error(ex);
+      toast('Erro ao ler arquivo: '+ex.message, false);
+    }
+  };
+  reader.readAsArrayBuffer(file);
 }
 
 function fecharModal(id) { document.getElementById(id).classList.remove('aberto'); }
