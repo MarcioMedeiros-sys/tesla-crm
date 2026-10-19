@@ -107,6 +107,32 @@ tr:hover td{background:#1f1f1f}
 .modal-tab.ativo{color:#f5a623;border-bottom-color:#f5a623}
 .secao-campos{display:none}
 .secao-campos.ativa{display:block}
+/* SIMULADOR */
+.sim-mppt-bloco{background:#111;border:1px solid #2a2a3a;border-radius:8px;padding:14px;margin-bottom:12px}
+.sim-mppt-titulo{color:#f5a623;font-weight:700;font-size:.9rem;margin-bottom:10px;display:flex;align-items:center;justify-content:space-between}
+.sim-string-row{display:flex;align-items:center;gap:10px;margin-bottom:8px;flex-wrap:wrap}
+.sim-string-row label{color:#aaa;font-size:.82rem;min-width:80px}
+.sim-string-row input{width:80px;padding:6px 8px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.88rem;text-align:center}
+.sim-string-row .sim-del{background:transparent;border:1px solid #444;color:#888;border-radius:4px;padding:4px 8px;cursor:pointer;font-size:.8rem}
+.sim-string-row .sim-del:hover{border-color:#e74c3c;color:#e74c3c}
+.sim-card-indicador{background:#1a1a2e;border:1px solid #2a2a4a;border-radius:8px;padding:14px;text-align:center}
+.sim-card-indicador .sim-val{font-size:1.5rem;font-weight:700;color:#f5a623;margin:4px 0}
+.sim-card-indicador .sim-lab{font-size:.75rem;color:#888}
+.sim-card-indicador.ok .sim-val{color:#2ecc71}
+.sim-card-indicador.erro .sim-val{color:#e74c3c}
+.sim-card-indicador.aviso .sim-val{color:#f5a623}
+.sim-status-ok{color:#2ecc71;font-weight:700}
+.sim-status-erro{color:#e74c3c;font-weight:700}
+.sim-status-aviso{color:#f5a623;font-weight:700}
+.sim-validacao-ok{background:#0d2b0d;border:2px solid #2ecc71;border-radius:8px;padding:16px;margin-top:4px}
+.sim-validacao-erro{background:#2b0d0d;border:2px solid #e74c3c;border-radius:8px;padding:16px;margin-top:4px}
+.sim-validacao-aviso{background:#2b2200;border:2px solid #f5a623;border-radius:8px;padding:16px;margin-top:4px}
+.sim-vt{font-size:1rem;font-weight:700;margin-bottom:10px}
+.sim-vl{font-size:.85rem;margin:5px 0;color:#ccc}
+.sim-vl strong{color:#fff}
+td.td-ok{color:#2ecc71;font-weight:600}
+td.td-erro{color:#e74c3c;font-weight:600}
+td.td-aviso{color:#f5a623;font-weight:600}
 </style>
 </head>
 <body>
@@ -135,6 +161,7 @@ tr:hover td{background:#1f1f1f}
     <a onclick="ir('nova-proposta')" id="nav-nova-proposta"><span class="ic">➕</span> Nova Proposta</a>
     <a onclick="ir('equipamentos')" id="nav-equipamentos"><span class="ic">🔧</span> Equipamentos</a>
     <a onclick="ir('kits')" id="nav-kits"><span class="ic">📦</span> Kits Prontos</a>
+    <a onclick="ir('simulador')" id="nav-simulador"><span class="ic">⚡</span> Simulador</a>
   </nav>
   <div class="sair-btn">
     <button onclick="sair()">🚪 Sair</button>
@@ -291,6 +318,104 @@ tr:hover td{background:#1f1f1f}
           <thead><tr><th>Nome do Kit</th><th>Módulo</th><th>Inversor</th><th>Qtd Mód.</th><th>Potência</th><th>Preço Sug.</th><th>Ações</th></tr></thead>
           <tbody id="tabela-kits"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
         </table>
+      </div>
+    </div>
+
+    <!-- SIMULADOR DE STRING -->
+    <div class="secao" id="sec-simulador">
+      <div class="form-card">
+        <h3>🔧 Configuração do Sistema</h3>
+        <div class="form-grid">
+          <div class="form-group">
+            <label>Módulo Fotovoltaico</label>
+            <select id="sim-modulo" onchange="simAtualizar()">
+              <option value="">-- Selecionar módulo --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Inversor</label>
+            <select id="sim-inversor" onchange="simAtualizar()">
+              <option value="">-- Selecionar inversor --</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label>Temperatura mínima local (°C)</label>
+            <input type="number" id="sim-tmin" value="18" step="1" oninput="simAtualizar()" title="Temperatura mínima histórica da região (usada para cálculo de Voc máxima)">
+          </div>
+          <div class="form-group">
+            <label>Temperatura máxima célula (°C)</label>
+            <input type="number" id="sim-tmax" value="70" step="1" oninput="simAtualizar()" title="Temperatura máxima da célula fotovoltaica (usada para cálculo de Vmp mínima)">
+          </div>
+        </div>
+      </div>
+
+      <!-- STRINGS POR MPPT -->
+      <div class="form-card" id="sim-mppt-config" style="display:none">
+        <h3>⚡ Configuração de Strings por MPPT</h3>
+        <div id="sim-mppts-container"></div>
+        <div style="margin-top:14px">
+          <button class="btn btn-secondary" onclick="simAddString()" id="btn-add-string">+ Adicionar String</button>
+          <span style="color:#888;font-size:.8rem;margin-left:12px" id="sim-capacidade-info"></span>
+        </div>
+      </div>
+
+      <!-- RESULTADO -->
+      <div id="sim-resultado" style="display:none">
+
+        <!-- INDICADORES POR STRING -->
+        <div class="form-card">
+          <h3>📐 Indicadores por String</h3>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>MPPT</th>
+                  <th>String</th>
+                  <th>Nº Mód.</th>
+                  <th>Vmp (V)</th>
+                  <th>Voc STC (V)</th>
+                  <th>Voc Frio (V)</th>
+                  <th>Vmp Quente (V)</th>
+                  <th>Isc (A)</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="sim-tabela-strings"></tbody>
+            </table>
+          </div>
+        </div>
+
+        <!-- CABOS CC -->
+        <div class="form-card">
+          <h3>🔌 Cabos CC — Corrente por String</h3>
+          <div style="overflow-x:auto">
+            <table>
+              <thead>
+                <tr>
+                  <th>MPPT</th>
+                  <th>String</th>
+                  <th>Iop (A)</th>
+                  <th>Isc (A)</th>
+                  <th>Bitola mín. recomendada</th>
+                  <th>Capacidade (70°C)</th>
+                  <th>Status cabo</th>
+                </tr>
+              </thead>
+              <tbody id="sim-tabela-cabos"></tbody>
+            </table>
+          </div>
+          <div style="color:#666;font-size:.78rem;margin-top:10px">* Bitola recomendada com fator de segurança 1,25 × Isc conforme ABNT NBR 16690. Capacidade de corrente para cabo solar 90°C em duto fechado (derating 70°C).</div>
+        </div>
+
+        <!-- RESUMO DO SISTEMA -->
+        <div class="form-card">
+          <h3>📊 Resumo do Sistema</h3>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px" id="sim-resumo-cards"></div>
+        </div>
+
+        <!-- VALIDAÇÃO GERAL -->
+        <div id="sim-validacao-geral" style="margin-top:8px"></div>
+
       </div>
     </div>
 
@@ -593,7 +718,7 @@ async function init() {
 // NAVEGAÇÃO
 // ============================================================
 let secaoAtual = 'dashboard';
-const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos',kits:'📦 Kits Prontos'};
+const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos',kits:'📦 Kits Prontos',simulador:'⚡ Simulador de String'};
 
 function ir(sec) {
   document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
@@ -1119,6 +1244,22 @@ function validarMPPT() {
     infos.push(`✅ Corrente OK: Isc módulo ${isc}A ≤ ${imaxMppt}A (Imax MPPT)`);
   }
 
+  // === OVERSIZING DE POTÊNCIA ===
+  const potModW = nMods * (mod.potencia_w || 0);
+  const potAcW  = inv.potencia_max_ac || inv.potencia_w || 0;
+  if (potAcW > 0 && potModW > 0) {
+    const oversizing = (potModW / potAcW - 1) * 100;
+    if (oversizing > 50) {
+      problemas.push(`🔴 Oversizing excessivo: ${(potModW/1000).toFixed(2)} kWp de módulos para um inversor de ${(potAcW/1000).toFixed(2)} kW (${oversizing.toFixed(0)}% acima da potência AC). Risco de clipping severo e sobrecarga!`);
+    } else if (oversizing > 30) {
+      avisos.push(`⚠️ Oversizing alto: ${(potModW/1000).toFixed(2)} kWp / ${(potAcW/1000).toFixed(2)} kW = ${oversizing.toFixed(0)}% acima da potência AC. Verificar com fabricante.`);
+    } else if (oversizing >= 0) {
+      infos.push(`✅ Potência OK: ${(potModW/1000).toFixed(2)} kWp CC / ${(potAcW/1000).toFixed(2)} kW AC (oversizing ${oversizing.toFixed(0)}%)`);
+    } else {
+      infos.push(`ℹ️ Potência CC (${(potModW/1000).toFixed(2)} kWp) abaixo da capacidade AC do inversor (${(potAcW/1000).toFixed(2)} kW).`);
+    }
+  }
+
   // Renderizar resultado
   if (problemas.length > 0) {
     box.className = 'validacao-box v-erro';
@@ -1319,6 +1460,9 @@ async function popularSelectsEquip() {
 
   if (vmod) smod.value = vmod;
   if (vinv) sinv.value = vinv;
+
+  // Popular selects do Simulador também
+  simPopularSelects();
 }
 
 async function popularSelectClientes() {
@@ -1732,6 +1876,332 @@ async function buscarCEPModal() {
     document.getElementById('mc-cidade').value = d.localidade || '';
     document.getElementById('mc-estado').value = d.uf || '';
   } catch(e) {}
+}
+
+// ============================================================
+// SIMULADOR DE STRING
+// ============================================================
+
+// Tabela de bitolas de cabo solar (seção em mm², corrente em A para 70°C em duto)
+const BITOLAS_CABO = [
+  { mm2: 1.5,  label: '1,5 mm²',  imax70: 12 },
+  { mm2: 2.5,  label: '2,5 mm²',  imax70: 17 },
+  { mm2: 4,    label: '4 mm²',    imax70: 22 },
+  { mm2: 6,    label: '6 mm²',    imax70: 28 },
+  { mm2: 10,   label: '10 mm²',   imax70: 40 },
+  { mm2: 16,   label: '16 mm²',   imax70: 54 },
+  { mm2: 25,   label: '25 mm²',   imax70: 70 },
+  { mm2: 35,   label: '35 mm²',   imax70: 86 },
+];
+
+// Estado do simulador: array de strings [{mppt:1, str:1, nMods:N}, ...]
+let simStrings = [];
+let simNMppt = 0;
+let simStrPorMppt = 0;
+
+function simBitolaParaI(iCalc) {
+  // Retorna menor bitola cuja imax70 >= iCalc
+  for (const b of BITOLAS_CABO) {
+    if (b.imax70 >= iCalc) return b;
+  }
+  return { label: '> 35 mm² (consultar eng.)', imax70: 999 };
+}
+
+function simPopularSelects() {
+  const mods  = equipData.filter(e => e.tipo === 'modulo');
+  const invs  = equipData.filter(e => e.tipo === 'inversor');
+  const selM  = document.getElementById('sim-modulo');
+  const selI  = document.getElementById('sim-inversor');
+  const curM  = selM.value;
+  const curI  = selI.value;
+
+  selM.innerHTML = '<option value="">-- Selecionar módulo --</option>' +
+    mods.map(e => `<option value="${e.id}" ${e.id===curM?'selected':''}>${e.nome}${e.potencia_w?' ('+e.potencia_w+'W)':''}</option>`).join('');
+  selI.innerHTML = '<option value="">-- Selecionar inversor --</option>' +
+    invs.map(e => `<option value="${e.id}" ${e.id===curI?'selected':''}>${e.nome}${e.potencia_max_ac?' ('+((e.potencia_max_ac/1000).toFixed(1))+'kW)':''}</option>`).join('');
+}
+
+function simAtualizar() {
+  const modId = document.getElementById('sim-modulo').value;
+  const invId = document.getElementById('sim-inversor').value;
+  if (!modId || !invId) {
+    document.getElementById('sim-mppt-config').style.display = 'none';
+    document.getElementById('sim-resultado').style.display = 'none';
+    return;
+  }
+  const inv = equipData.find(e => e.id === invId);
+  if (!inv) return;
+
+  const nMppt = inv.n_mppt || 1;
+  const strPMppt = inv.strings_por_mppt || 1;
+
+  // Se o inversor mudou, reiniciar strings
+  if (nMppt !== simNMppt || strPMppt !== simStrPorMppt) {
+    simNMppt = nMppt;
+    simStrPorMppt = strPMppt;
+    simStrings = [];
+    // Adiciona 1 string no MPPT 1 como ponto de partida
+    simStrings.push({ mppt: 1, str: 1, nMods: 8 });
+  }
+
+  document.getElementById('sim-mppt-config').style.display = 'block';
+  document.getElementById('sim-capacidade-info').textContent =
+    `Inversor tem ${nMppt} MPPT × ${strPMppt} string(s) = ${nMppt*strPMppt} string(s) no total`;
+
+  simRenderStrings();
+  simCalcular();
+}
+
+function simRenderStrings() {
+  const invId = document.getElementById('sim-inversor').value;
+  const inv = equipData.find(e => e.id === invId);
+  if (!inv) return;
+
+  const nMppt = inv.n_mppt || 1;
+  const strPMppt = inv.strings_por_mppt || 1;
+  const totalMax = nMppt * strPMppt;
+  const cont = document.getElementById('sim-mppts-container');
+  cont.innerHTML = '';
+
+  // Agrupar por MPPT
+  for (let m = 1; m <= nMppt; m++) {
+    const stringsNesteMppt = simStrings.filter(s => s.mppt === m);
+    const bloco = document.createElement('div');
+    bloco.className = 'sim-mppt-bloco';
+    bloco.innerHTML = `<div class="sim-mppt-titulo">MPPT ${m} <span style="color:#666;font-size:.8rem">${stringsNesteMppt.length}/${strPMppt} string(s)</span></div>
+      <div id="sim-mppt${m}-strings">
+        ${stringsNesteMppt.map((s, idx) => {
+          const globalIdx = simStrings.indexOf(s);
+          return `<div class="sim-string-row">
+            <label>String ${s.str}:</label>
+            <input type="number" min="1" max="40" value="${s.nMods}"
+              oninput="simStrings[${globalIdx}].nMods=parseInt(this.value)||1;simCalcular()"
+              title="Número de módulos em série nesta string">
+            <span style="color:#888;font-size:.8rem">módulos em série</span>
+            <button class="sim-del" onclick="simRemoverString(${globalIdx})" title="Remover esta string">✕</button>
+          </div>`;
+        }).join('')}
+      </div>`;
+    cont.appendChild(bloco);
+  }
+
+  // Btn add string
+  const btn = document.getElementById('btn-add-string');
+  btn.disabled = simStrings.length >= totalMax;
+  btn.style.opacity = simStrings.length >= totalMax ? '0.4' : '1';
+}
+
+function simAddString() {
+  const invId = document.getElementById('sim-inversor').value;
+  const inv = equipData.find(e => e.id === invId);
+  if (!inv) return;
+
+  const nMppt = inv.n_mppt || 1;
+  const strPMppt = inv.strings_por_mppt || 1;
+  const totalMax = nMppt * strPMppt;
+
+  if (simStrings.length >= totalMax) { toast('Limite de strings atingido para este inversor', false); return; }
+
+  // Encontrar próximo MPPT com vaga
+  for (let m = 1; m <= nMppt; m++) {
+    const cnt = simStrings.filter(s => s.mppt === m).length;
+    if (cnt < strPMppt) {
+      const strNum = cnt + 1;
+      simStrings.push({ mppt: m, str: strNum, nMods: 8 });
+      simRenderStrings();
+      simCalcular();
+      return;
+    }
+  }
+}
+
+function simRemoverString(idx) {
+  if (simStrings.length <= 1) { toast('Deve haver ao menos 1 string', false); return; }
+  simStrings.splice(idx, 1);
+  // Re-numerar strings dentro de cada MPPT
+  for (let m = 1; m <= simNMppt; m++) {
+    let n = 1;
+    simStrings.filter(s => s.mppt === m).forEach(s => { s.str = n++; });
+  }
+  simRenderStrings();
+  simCalcular();
+}
+
+function simCalcular() {
+  const modId = document.getElementById('sim-modulo').value;
+  const invId = document.getElementById('sim-inversor').value;
+  if (!modId || !invId || simStrings.length === 0) return;
+
+  const mod = equipData.find(e => e.id === modId);
+  const inv = equipData.find(e => e.id === invId);
+  if (!mod || !inv) return;
+
+  const tMin = parseFloat(document.getElementById('sim-tmin').value) || 18;
+  const tMax = parseFloat(document.getElementById('sim-tmax').value) || 70;
+  const tStc = 25; // temperatura STC de referência
+
+  // Coeficiente de temperatura Voc (em %/°C — armazenado como negativo ex: -0.27)
+  const coefVoc = mod.coef_temp_voc || -0.29; // default típico
+  const coefVocDec = coefVoc / 100; // converter de %/°C para decimal/°C
+
+  const vMax = inv.v_max_entrada || 0;
+  const vStart = inv.v_start || 0;
+  const vmpptMin = vStart; // para simplificar, Vstart ≈ Vmppt mín
+  const imaxMppt = inv.i_max_mppt || 0;
+  const potAcW = inv.potencia_max_ac || inv.potencia_w || 0;
+
+  const problemas = [];
+  const avisos = [];
+  const infos = [];
+
+  // --- TABELA DE STRINGS ---
+  const linhasStrings = [];
+  const linhasCabos = [];
+
+  for (const s of simStrings) {
+    const n = s.nMods || 1;
+    const vmpStr    = n * (mod.vmp || 0);                                  // Vmp string STC
+    const vocStr    = n * (mod.voc || 0);                                  // Voc string STC
+    const vocFrio   = vocStr * (1 + coefVocDec * (tMin - tStc));           // Voc na temp mín (mais alta)
+    const vmpQuente = vmpStr * (1 + coefVocDec * (tMax - tStc));           // Vmp na temp máx (mais baixa)
+    const isc       = mod.isc || 0;
+    const imp       = mod.imp || 0;
+
+    // Status tensão desta string
+    let statusStr = '✅ OK';
+    let tdClass = 'td-ok';
+
+    if (vMax > 0 && vocFrio > vMax) {
+      statusStr = '🔴 Voc frio > Vmáx';
+      tdClass = 'td-erro';
+      problemas.push(`MPPT ${s.mppt} / String ${s.str}: Voc no frio (${vocFrio.toFixed(0)}V) ultrapassa o limite máximo do inversor (${vMax}V) — risco de dano!`);
+    } else if (vStart > 0 && vmpQuente < vStart) {
+      statusStr = '🔴 Vmp quente < Vstart';
+      tdClass = 'td-erro';
+      problemas.push(`MPPT ${s.mppt} / String ${s.str}: Vmp no calor (${vmpQuente.toFixed(0)}V) fica abaixo do Vstart do inversor (${vStart}V) — inversor pode não ligar!`);
+    } else if (vMax > 0 && vocStr > vMax * 0.95) {
+      statusStr = '⚠️ Voc próx. do limite';
+      tdClass = 'td-aviso';
+      avisos.push(`MPPT ${s.mppt} / String ${s.str}: Voc (${vocStr.toFixed(0)}V) está próxima do limite máximo do inversor (${vMax}V).`);
+    }
+
+    linhasStrings.push(`<tr>
+      <td>MPPT ${s.mppt}</td>
+      <td>String ${s.str}</td>
+      <td>${n}</td>
+      <td>${vmpStr.toFixed(1)}</td>
+      <td>${vocStr.toFixed(1)}</td>
+      <td>${vocFrio.toFixed(1)}</td>
+      <td>${vmpQuente.toFixed(1)}</td>
+      <td>${isc.toFixed(2)}</td>
+      <td class="${tdClass}">${statusStr}</td>
+    </tr>`);
+
+    // --- CABO ---
+    const iCalcCabo = isc * 1.25; // fator de segurança NBR 16690
+    const bitola = simBitolaParaI(iCalcCabo);
+    const statusCabo = bitola.imax70 >= iCalcCabo ? '✅ OK' : '🔴 Superdimensionar';
+    const caboCls = bitola.imax70 >= iCalcCabo ? 'td-ok' : 'td-erro';
+
+    linhasCabos.push(`<tr>
+      <td>MPPT ${s.mppt}</td>
+      <td>String ${s.str}</td>
+      <td>${(imp).toFixed(2)}</td>
+      <td>${isc.toFixed(2)}</td>
+      <td><strong>${bitola.label}</strong></td>
+      <td>${bitola.imax70} A</td>
+      <td class="${caboCls}">${statusCabo}</td>
+    </tr>`);
+  }
+
+  // --- VERIFICAÇÃO CORRENTE POR MPPT ---
+  for (let m = 1; m <= simNMppt; m++) {
+    const strsMppt = simStrings.filter(s => s.mppt === m);
+    if (strsMppt.length === 0) continue;
+    const iScTotal = strsMppt.reduce((acc, s) => acc + (mod.isc || 0), 0); // paralelo: soma das Isc
+    if (imaxMppt > 0 && iScTotal > imaxMppt) {
+      problemas.push(`MPPT ${m}: Corrente total de curto-circuito (${iScTotal.toFixed(1)}A) ultrapassa o Imax MPPT do inversor (${imaxMppt}A)!`);
+    } else if (imaxMppt > 0) {
+      infos.push(`MPPT ${m}: Isc total ${iScTotal.toFixed(1)}A ≤ ${imaxMppt}A (Imax MPPT) ✅`);
+    }
+  }
+
+  // --- OVERSIZING ---
+  const potModTotal = simStrings.reduce((acc, s) => acc + s.nMods * (mod.potencia_w || 0), 0);
+  const potKwp = potModTotal / 1000;
+  if (potAcW > 0) {
+    const oversizing = (potModTotal / potAcW - 1) * 100;
+    if (oversizing > 50) {
+      problemas.push(`Oversizing excessivo: ${potKwp.toFixed(2)} kWp de módulos para um inversor de ${(potAcW/1000).toFixed(2)} kW (${oversizing.toFixed(0)}% acima). Risco de clipping excessivo e sobrecarga!`);
+    } else if (oversizing > 30) {
+      avisos.push(`Oversizing alto: ${potKwp.toFixed(2)} kWp / ${(potAcW/1000).toFixed(2)} kW = ${oversizing.toFixed(0)}% acima da potência AC. Verificar com o fabricante.`);
+    } else if (oversizing > 0) {
+      infos.push(`Oversizing: ${oversizing.toFixed(0)}% (${potKwp.toFixed(2)} kWp / ${(potAcW/1000).toFixed(2)} kW) — dentro do limite aceitável ✅`);
+    } else {
+      infos.push(`Potência CC: ${potKwp.toFixed(2)} kWp — abaixo da capacidade AC do inversor.`);
+    }
+  }
+
+  // --- RENDERIZAR TABELAS ---
+  document.getElementById('sim-tabela-strings').innerHTML = linhasStrings.join('');
+  document.getElementById('sim-tabela-cabos').innerHTML = linhasCabos.join('');
+
+  // --- CARDS DE RESUMO ---
+  const totalMods = simStrings.reduce((a, s) => a + s.nMods, 0);
+  const potAcKw = (potAcW / 1000).toFixed(2);
+  const oversizingFinal = potAcW > 0 ? ((potModTotal / potAcW - 1) * 100).toFixed(0) : '—';
+  const vmpPrimStr = simStrings[0] ? simStrings[0].nMods * (mod.vmp || 0) : 0;
+  const vocFrioPrimStr = simStrings[0]
+    ? simStrings[0].nMods * (mod.voc || 0) * (1 + (coefVoc/100) * (tMin - tStc))
+    : 0;
+
+  const cards = [
+    { label: 'Total de módulos', val: totalMods + ' un', cls: '' },
+    { label: 'Potência CC total', val: potKwp.toFixed(2) + ' kWp', cls: '' },
+    { label: 'Potência AC inversor', val: potAcKw + ' kW', cls: '' },
+    { label: 'Oversizing', val: oversizingFinal + '%', cls: parseFloat(oversizingFinal) > 50 ? 'erro' : parseFloat(oversizingFinal) > 30 ? 'aviso' : 'ok' },
+    { label: 'Strings configuradas', val: simStrings.length + ' / ' + (simNMppt * simStrPorMppt), cls: '' },
+    { label: 'Voc frio (1ª string)', val: vocFrioPrimStr.toFixed(0) + ' V', cls: vMax > 0 && vocFrioPrimStr > vMax ? 'erro' : 'ok' },
+    { label: 'Vmáx inversor', val: vMax + ' V', cls: '' },
+    { label: 'Imax MPPT inversor', val: imaxMppt ? imaxMppt + ' A' : '—', cls: '' },
+  ];
+
+  document.getElementById('sim-resumo-cards').innerHTML = cards.map(c =>
+    `<div class="sim-card-indicador ${c.cls}">
+      <div class="sim-lab">${c.label}</div>
+      <div class="sim-val">${c.val}</div>
+    </div>`
+  ).join('');
+
+  // --- VALIDAÇÃO GERAL ---
+  const vgDiv = document.getElementById('sim-validacao-geral');
+  if (problemas.length > 0) {
+    vgDiv.innerHTML = `<div class="sim-validacao-erro">
+      <div class="sim-vt" style="color:#e74c3c">⛔ SISTEMA INCOMPATÍVEL — Revisar antes de vender!</div>
+      ${problemas.map(p => `<div class="sim-vl">🔴 ${p}</div>`).join('')}
+      ${avisos.map(a => `<div class="sim-vl">⚠️ ${a}</div>`).join('')}
+      ${infos.map(i => `<div class="sim-vl" style="opacity:.7">${i}</div>`).join('')}
+    </div>`;
+  } else if (avisos.length > 0) {
+    vgDiv.innerHTML = `<div class="sim-validacao-aviso">
+      <div class="sim-vt" style="color:#f5a623">⚠️ SISTEMA COM RESSALVAS — Verifique os pontos abaixo</div>
+      ${avisos.map(a => `<div class="sim-vl">⚠️ ${a}</div>`).join('')}
+      ${infos.map(i => `<div class="sim-vl" style="opacity:.8">${i}</div>`).join('')}
+    </div>`;
+  } else {
+    vgDiv.innerHTML = `<div class="sim-validacao-ok">
+      <div class="sim-vt" style="color:#2ecc71">✅ SISTEMA APROVADO — Todas as verificações OK</div>
+      ${infos.map(i => `<div class="sim-vl">${i}</div>`).join('')}
+    </div>`;
+  }
+
+  document.getElementById('sim-resultado').style.display = 'block';
+}
+
+// Popular selects do simulador sempre que carregar equipamentos
+const _origPopularSelectsEquip = typeof popularSelectsEquip === 'function' ? popularSelectsEquip : null;
+function simInit() {
+  if (equipData && equipData.length > 0) simPopularSelects();
 }
 </script>
 </body>
