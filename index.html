@@ -1297,10 +1297,29 @@ function calcFinanc() {
 let todosEquip = [];
 
 async function carregarEquipamentos() {
-  const { data } = await db.from('equipamentos').select('*').order('tipo').order('potencia_w');
-  todosEquip = data || [];
-  equipData = data || [];
+  const { data } = await db.from('equipamentos').select('*').order('tipo').order('nome');
+  todosEquip = (data || []).sort((a,b) => a.nome.localeCompare(b.nome, 'pt-BR'));
+  equipData = todosEquip;
+  gerarCodigosEquip();
   renderEquip(todosEquip);
+}
+
+// Gera códigos sequenciais por tipo: INV001, MOD001, etc.
+const PREFIXOS = {modulo:'MOD',inversor:'INV',cabo_cc:'CAB',cabo_ca:'CAC',
+  conector:'CON',stringbox:'STB',disjuntor:'DIS',quadro:'QUA',
+  estrutura:'EST',medicao:'MED',acessorio:'ACE'};
+function gerarCodigosEquip() {
+  const contadores = {};
+  // Ordenar por tipo depois nome para códigos consistentes
+  const ordenados = [...todosEquip].sort((a,b) => {
+    if (a.tipo !== b.tipo) return a.tipo.localeCompare(b.tipo);
+    return a.nome.localeCompare(b.nome, 'pt-BR');
+  });
+  ordenados.forEach(e => {
+    const pref = PREFIXOS[e.tipo] || 'EQP';
+    contadores[pref] = (contadores[pref] || 0) + 1;
+    e._codigo = pref + String(contadores[pref]).padStart(3, '0');
+  });
 }
 
 function renderEquip(lista) {
@@ -1308,7 +1327,7 @@ function renderEquip(lista) {
   if (!lista.length) { tb.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum equipamento</td></tr>'; return; }
   tb.innerHTML = lista.map(e => `
     <tr>
-      <td><span class="badge" style="background:${badgeBg(e.tipo)};color:${badgeFg(e.tipo)};font-size:.7rem">${badgeLabel(e.tipo)}</span></td>
+      <td><span style="font-family:monospace;font-size:.75rem;font-weight:700;color:${badgeFg(e.tipo)};background:${badgeBg(e.tipo)};padding:3px 7px;border-radius:6px;letter-spacing:.5px">${e._codigo||badgeLabel(e.tipo)}</span></td>
       <td>${e.nome}</td>
       <td>${e.potencia_w ? e.potencia_w+'W' : '-'}</td>
       <td>${e.marca||'-'}</td>
@@ -1323,7 +1342,12 @@ function renderEquip(lista) {
 
 function filtrarEquip() {
   const q = document.getElementById('busca-equip').value.toLowerCase();
-  renderEquip(todosEquip.filter(e => e.nome.toLowerCase().includes(q) || (e.marca||'').toLowerCase().includes(q)));
+  renderEquip(todosEquip.filter(e =>
+    e.nome.toLowerCase().includes(q) ||
+    (e._codigo||'').toLowerCase().includes(q) ||
+    (e.marca||'').toLowerCase().includes(q) ||
+    badgeLabel(e.tipo).toLowerCase().includes(q)
+  ));
 }
 
 // Cores e labels dos badges por tipo de equipamento
@@ -2036,12 +2060,34 @@ function simCalcular() {
   const inv = equipData.find(e => e.id === invId);
   if (!mod || !inv) return;
 
+  // === VALIDAÇÃO: parâmetros obrigatórios do módulo ===
+  const faltaMod = [];
+  if (!mod.voc)         faltaMod.push('Voc (tensão circuito aberto)');
+  if (!mod.vmp)         faltaMod.push('Vmp (tensão ponto máximo)');
+  if (!mod.isc)         faltaMod.push('Isc (corrente curto-circuito)');
+  if (!mod.coef_temp_voc) faltaMod.push('Coef. temperatura Voc (%/°C)');
+  const faltaInv = [];
+  if (!inv.v_max_entrada) faltaInv.push('Tensão máx. entrada (Vmáx)');
+
+  const resEl = document.getElementById('sim-resultado');
+  if (faltaMod.length || faltaInv.length) {
+    let avisoHtml = `<div style="background:#3a1a00;border:1px solid #f59e0b;border-radius:8px;padding:14px;margin-bottom:12px">
+      <b style="color:#f59e0b">⚠️ Parâmetros elétricos incompletos — cálculo pode estar errado!</b><br>
+      <small style="color:#fcd34d">Sem esses dados, os valores de tensão corrigida pela temperatura são inválidos.</small>`;
+    if (faltaMod.length) avisoHtml += `<br><br><b style="color:#fca5a5">Módulo "${mod.nome}" está faltando:</b><br><span style="color:#fca5a5">• ${faltaMod.join('<br>• ')}</span>`;
+    if (faltaInv.length) avisoHtml += `<br><br><b style="color:#fca5a5">Inversor "${inv.nome}" está faltando:</b><br><span style="color:#fca5a5">• ${faltaInv.join('<br>• ')}</span>`;
+    avisoHtml += `<br><br><small style="color:#94a3b8">👉 Vá em <b>Equipamentos</b>, edite o item e preencha os dados da ficha técnica do fabricante.</small></div>`;
+    resEl.innerHTML = avisoHtml;
+    resEl.style.display = 'block';
+    if (faltaMod.length >= 3) return; // Sem Voc, Vmp e Isc não tem como calcular nada
+  }
+
   const tMin = parseFloat(document.getElementById('sim-tmin').value) || 18;
   const tMax = parseFloat(document.getElementById('sim-tmax').value) || 70;
   const tStc = 25; // temperatura STC de referência
 
   // Coeficiente de temperatura Voc (em %/°C — armazenado como negativo ex: -0.27)
-  const coefVoc = mod.coef_temp_voc || -0.29; // default típico
+  const coefVoc = mod.coef_temp_voc || -0.29; // default típico (aviso já emitido acima se null)
   const coefVocDec = coefVoc / 100; // converter de %/°C para decimal/°C
 
   const vMax = inv.v_max_entrada || 0;
