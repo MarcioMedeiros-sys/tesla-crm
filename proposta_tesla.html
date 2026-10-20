@@ -60,25 +60,56 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
 .pagina{background:#fff;width:100%;margin-bottom:24px;box-shadow:0 4px 20px rgba(0,0,0,.12);
   border-radius:4px;overflow:hidden;position:relative}
 
-/* ----- CAPA ----- */
-.capa{min-height:980px;max-height:1060px;display:flex;flex-direction:column;page-break-after:always;page-break-inside:avoid}
-.capa-header{background:#ff6606;padding:12px 32px;text-align:center}
-.capa-header img{height:52px;object-fit:contain}
-.capa-band{background:#ff6606;padding:10px 32px;text-align:center}
-.capa-band h2{color:#fff;font-size:.95rem;font-weight:800;letter-spacing:.06em;text-transform:uppercase;line-height:1.3}
-.capa-foto{flex:1;background:#1a1a2e;min-height:340px;max-height:400px;position:relative;overflow:hidden}
-.capa-foto img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;print-color-adjust:exact;-webkit-print-color-adjust:exact}
-.capa-foto::after{content:'';position:absolute;inset:0;background:linear-gradient(to bottom,transparent 60%,rgba(0,0,0,.5))}
-.capa-titulo{background:#ff6606;padding:20px 32px;text-align:center}
-.capa-titulo h1{color:#fff;font-size:2.4rem;font-weight:900;letter-spacing:.02em;line-height:1}
-.capa-titulo p{color:rgba(255,255,255,.85);font-size:.9rem;font-weight:600;letter-spacing:.08em;
-  text-transform:uppercase;margin-top:5px}
-.capa-dados{padding:16px 32px;display:grid;grid-template-columns:1fr 1fr;gap:5px 24px;border-bottom:3px solid #ff6606}
+/* ----- CAPA — foto full-page com overlay ----- */
+.capa{min-height:980px;max-height:1060px;position:relative;overflow:hidden;
+  display:flex;flex-direction:column;page-break-after:always;page-break-inside:avoid}
+
+/* Foto ocupa toda a página */
+.capa-foto{position:absolute;inset:0;z-index:0}
+.capa-foto img{width:100%;height:100%;object-fit:cover;object-position:center;
+  print-color-adjust:exact;-webkit-print-color-adjust:exact}
+/* Overlay escuro no topo e base para legibilidade */
+.capa-foto::after{content:'';position:absolute;inset:0;
+  background:linear-gradient(to bottom,
+    rgba(0,0,0,.55) 0%,
+    rgba(0,0,0,.1) 35%,
+    rgba(0,0,0,.1) 55%,
+    rgba(0,0,0,.65) 100%);
+  print-color-adjust:exact;-webkit-print-color-adjust:exact}
+
+/* Topo: logo e nome da empresa */
+.capa-header{position:relative;z-index:1;background:transparent;
+  padding:22px 32px 0;text-align:center}
+.capa-header img{height:60px;object-fit:contain;filter:drop-shadow(0 2px 6px rgba(0,0,0,.5))}
+.capa-header-nome{color:#fff;font-size:.85rem;font-weight:800;letter-spacing:.1em;
+  text-transform:uppercase;margin-top:6px;text-shadow:0 1px 4px rgba(0,0,0,.7)}
+
+/* Spacer empurra o bloco de título para baixo */
+.capa-spacer{flex:1;position:relative;z-index:1}
+
+/* Bloco laranja "PROPOSTA COMERCIAL" sobre a foto */
+.capa-titulo{position:relative;z-index:1;background:#ff6606;
+  padding:20px 32px;text-align:center}
+.capa-titulo h1{color:#fff;font-size:2.6rem;font-weight:900;
+  letter-spacing:.03em;line-height:1;margin:0}
+.capa-titulo p{color:rgba(255,255,255,.9);font-size:.92rem;font-weight:700;
+  letter-spacing:.12em;text-transform:uppercase;margin-top:6px}
+
+/* Dados do cliente */
+.capa-dados{position:relative;z-index:1;background:rgba(255,255,255,.97);
+  padding:14px 32px;display:grid;grid-template-columns:1fr 1fr;gap:4px 24px}
 .capa-dado{display:flex;gap:8px;align-items:baseline}
-.capa-dado .cd-label{font-size:.78rem;font-weight:800;color:#1a1a2e;text-transform:uppercase;white-space:nowrap}
-.capa-dado .cd-val{font-size:.82rem;color:#444}
-.capa-rodape{background:#1a1a2e;padding:10px 32px;text-align:center;font-size:.7rem;
+.capa-dado .cd-label{font-size:.76rem;font-weight:800;color:#1a1a2e;
+  text-transform:uppercase;white-space:nowrap}
+.capa-dado .cd-val{font-size:.82rem;color:#333}
+
+/* Rodapé */
+.capa-rodape{position:relative;z-index:1;background:#1a1a2e;
+  padding:10px 32px;text-align:center;font-size:.68rem;
   color:#aaa;letter-spacing:.08em;text-transform:uppercase}
+
+/* classes legadas que não existem mais — silenciar */
+.capa-band,.capa-band h2{display:none}
 
 /* ----- PÁGINAS INTERNAS: header/footer ----- */
 .ph{background:#ff6606;padding:10px 28px;display:flex;align-items:center;justify-content:space-between}
@@ -176,6 +207,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
   <button class="btn-painel btn-limpar" onclick="limpar()">Limpar</button>
   <button class="btn-painel btn-gerar" onclick="gerar()">▶ Gerar Proposta</button>
   <button class="btn-painel btn-gerar" style="background:#16a34a" onclick="imprimirPDF()">🖨 Imprimir / PDF</button>
+  <button class="btn-painel btn-gerar" id="btn-whats" style="background:#25D366;display:none" onclick="enviarWhatsApp()">💬 WhatsApp</button>
 </div>
 
 <!-- FORMULÁRIO -->
@@ -349,6 +381,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
 <!-- HINT IMPRESSÃO -->
 <div id="print-hint" style="display:none">
   <span>💡 <strong>Dica:</strong> Para salvar como PDF clique em 🖨 Imprimir / PDF — depois escolha "Salvar como PDF" na impressora. Recomende o tamanho A4 e margens mínimas.</span>
+  <button onclick="enviarWhatsApp()" style="margin-left:auto;flex-shrink:0;background:#25D366;color:#fff;border:none;border-radius:6px;padding:8px 16px;font-size:.85rem;font-weight:700;cursor:pointer">💬 Enviar por WhatsApp</button>
 </div>
 
 <!-- PROPOSTA GERADA -->
@@ -897,6 +930,7 @@ function gerar(){
   g('form-wrap').style.display='none';
   g('print-hint').style.display='flex';
   g('proposta-wrap').style.display='block';
+  g('btn-whats').style.display='inline-flex';
   window.scrollTo({top:0,behavior:'smooth'});
 }
 
@@ -904,7 +938,63 @@ function limpar(){
   g('form-wrap').style.display='block';
   g('print-hint').style.display='none';
   g('proposta-wrap').style.display='none';
+  g('btn-whats').style.display='none';
   window.scrollTo({top:0,behavior:'smooth'});
+}
+
+function enviarWhatsApp(){
+  // Pega número do cliente (campo telefone)
+  const telRaw = (g('f-tel')||{value:''}).value || '';
+  // Remove tudo que não for dígito
+  let tel = telRaw.replace(/\D/g,'');
+  // Se não tiver código de país, adiciona +55 (Brasil)
+  if(tel.length <= 11) tel = '55' + tel;
+
+  // Dados da proposta para a mensagem
+  const nome   = (g('f-nome')||{value:''}).value || 'Cliente';
+  const kwp    = (g('c-kwp')||{textContent:''}).textContent || '';
+  const nProp  = (g('p-numero')||{value:''}).value || '';
+  const val    = (g('p-validade')||{value:''}).value || '';
+
+  // Formata validade
+  let validadeStr = '';
+  if(val){
+    try{
+      const d = new Date(val+'T12:00:00');
+      validadeStr = d.toLocaleDateString('pt-BR');
+    }catch(e){}
+  }
+
+  // Monta mensagem
+  const linhas = [
+    `Olá, ${nome}! 😊`,
+    ``,
+    `Segue abaixo a proposta comercial da *Tesla Energia Solar* para o seu sistema fotovoltaico.`,
+    ``,
+    kwp  ? `⚡ *Sistema:* ${kwp}` : '',
+    nProp ? `📋 *Proposta nº:* ${nProp}` : '',
+    validadeStr ? `📅 *Válida até:* ${validadeStr}` : '',
+    ``,
+    `Para visualizar ou baixar a proposta em PDF, acesse o link abaixo 👇`,
+    ``,
+    `Qualquer dúvida, estamos à disposição!`,
+    ``,
+    `*Tesla Energia Solar* 🌞`,
+    `📍 Mossoró/RN`,
+  ].filter(l => l !== null && l !== undefined).join('\n');
+
+  const msg = encodeURIComponent(linhas);
+
+  // Monta URL do WhatsApp
+  let url;
+  if(tel && tel.length >= 10){
+    url = `https://wa.me/${tel}?text=${msg}`;
+  } else {
+    // Sem número: abre o WhatsApp Web sem destino definido
+    url = `https://wa.me/?text=${msg}`;
+  }
+
+  window.open(url, '_blank');
 }
 </script>
 
