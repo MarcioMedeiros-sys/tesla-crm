@@ -973,18 +973,12 @@ function enviarWhatsApp(){
 
   // Dados da proposta para a mensagem
   const nome   = (g('f-nome')||{value:''}).value || 'Cliente';
-  const kwp    = (g('c-kwp')||{textContent:''}).textContent || '';
-  const nProp  = (g('p-numero')||{value:''}).value || '';
-  const val    = (g('p-validade')||{value:''}).value || '';
-
-  // Formata validade
-  let validadeStr = '';
-  if(val){
-    try{
-      const d = new Date(val+'T12:00:00');
-      validadeStr = d.toLocaleDateString('pt-BR');
-    }catch(e){}
-  }
+  const kwpEl  = g('r-pot'); // span preenchido pelo gerador
+  const kwp    = kwpEl ? (kwpEl.textContent||'').trim() : '';
+  const kwpStr = kwp ? kwp+' kWp' : '';
+  const nProp  = (g('c-num')||{textContent:''}).textContent || '';
+  const validade = (g('f-validade')||{value:''}).value || '';
+  const validadeStr = validade ? validade.replace(/\s*dias/i,'').trim()+' dias' : '';
 
   // Monta link da proposta com os dados do cliente atual
   const nomeParam  = encodeURIComponent((g('f-nome')||{value:''}).value || '');
@@ -1000,9 +994,9 @@ function enviarWhatsApp(){
     ``,
     `Segue abaixo a proposta comercial da *Tesla Energia Solar* para o seu sistema fotovoltaico.`,
     ``,
-    kwp  ? `⚡ *Sistema:* ${kwp}` : '',
+    kwpStr ? `⚡ *Sistema:* ${kwpStr}` : '',
     nProp ? `📋 *Proposta nº:* ${nProp}` : '',
-    validadeStr ? `📅 *Válida até:* ${validadeStr}` : '',
+    validadeStr ? `⏳ *Validade:* ${validadeStr}` : '',
     ``,
     `Para visualizar ou baixar a proposta em PDF, acesse o link abaixo 👇`,
     linkProposta,
