@@ -362,6 +362,9 @@ td.td-aviso{color:#f5a623;font-weight:600}
       <!-- RESULTADO -->
       <div id="sim-resultado" style="display:none">
 
+        <!-- Aviso de parâmetros faltando (não destrói os outros elementos) -->
+        <div id="sim-aviso-params" style="display:none"></div>
+
         <!-- INDICADORES POR STRING -->
         <div class="form-card">
           <h3>📐 Indicadores por String</h3>
@@ -2210,7 +2213,8 @@ function simCalcular() {
   const faltaInv = [];
   if (!inv.v_max_entrada) faltaInv.push('Tensão máx. entrada (Vmáx)');
 
-  const resEl = document.getElementById('sim-resultado');
+  // Aviso de parâmetros faltando — vai para div próprio, sem destruir o resto do resultado
+  const avisoEl = document.getElementById('sim-aviso-params');
   if (faltaMod.length || faltaInv.length) {
     let avisoHtml = `<div style="background:#3a1a00;border:1px solid #f59e0b;border-radius:8px;padding:14px;margin-bottom:12px">
       <b style="color:#f59e0b">⚠️ Parâmetros elétricos incompletos — cálculo pode estar errado!</b><br>
@@ -2218,9 +2222,14 @@ function simCalcular() {
     if (faltaMod.length) avisoHtml += `<br><br><b style="color:#fca5a5">Módulo "${mod.nome}" está faltando:</b><br><span style="color:#fca5a5">• ${faltaMod.join('<br>• ')}</span>`;
     if (faltaInv.length) avisoHtml += `<br><br><b style="color:#fca5a5">Inversor "${inv.nome}" está faltando:</b><br><span style="color:#fca5a5">• ${faltaInv.join('<br>• ')}</span>`;
     avisoHtml += `<br><br><small style="color:#94a3b8">👉 Vá em <b>Equipamentos</b>, edite o item e preencha os dados da ficha técnica do fabricante.</small></div>`;
-    resEl.innerHTML = avisoHtml;
-    resEl.style.display = 'block';
-    if (faltaMod.length >= 3) return; // Sem Voc, Vmp e Isc não tem como calcular nada
+    if (avisoEl) { avisoEl.innerHTML = avisoHtml; avisoEl.style.display = 'block'; }
+    if (faltaMod.length >= 3) {
+      // Sem Voc, Vmp e Isc não tem como calcular nada — mostra só o aviso
+      document.getElementById('sim-resultado').style.display = 'block';
+      return;
+    }
+  } else {
+    if (avisoEl) { avisoEl.innerHTML = ''; avisoEl.style.display = 'none'; }
   }
 
   const tMin = parseFloat(document.getElementById('sim-tmin').value) || 18;
