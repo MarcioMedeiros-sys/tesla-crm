@@ -350,8 +350,17 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
     <div class="fcard-body col3">
       <div class="field"><label>Valor total (R$)</label><input id="f-valor" type="number" step="0.01" placeholder="Ex: 22500.00"></div>
       <div class="field"><label>Desconto à vista (%)</label><input id="f-desc-av" type="number" step="0.1" placeholder="Ex: 5"></div>
-      <div class="field"><label>Nº parcelas cartão</label><input id="f-parc-cart" type="number" placeholder="Ex: 12"></div>
-      <div class="field"><label>Taxa cartão (% a.m.)</label><input id="f-taxa-cart" type="number" step="0.01" placeholder="Ex: 1.99"></div>
+      <div class="field" style="grid-column:span 2">
+        <label>Parcelamento no Cartão</label>
+        <select id="f-parc-cart" onchange="atualizarTaxaCart()">
+          <option value="6"  data-taxa="6.87">6× (taxa 6,87% a.m.)</option>
+          <option value="10" data-taxa="9.77" selected>10× (taxa 9,77% a.m.)</option>
+          <option value="12" data-taxa="11.08">12× (taxa 11,08% a.m.)</option>
+          <option value="16" data-taxa="14.43">16× (taxa 14,43% a.m.)</option>
+          <option value="18" data-taxa="15.66">18× (taxa 15,66% a.m.)</option>
+        </select>
+        <input type="hidden" id="f-taxa-cart" value="9.77">
+      </div>
       <div class="field"><label>Nº parcelas financiamento</label><input id="f-parc-fin" type="number" placeholder="Ex: 60"></div>
       <div class="field"><label>Taxa financiamento (% a.m.)</label><input id="f-taxa-fin" type="number" step="0.01" placeholder="Ex: 0.99"></div>
       <div class="field"><label>Prazo de instalação</label><input id="f-prazo" placeholder="Ex: 30 dias após aprovação"></div>
@@ -759,6 +768,12 @@ function fmtN(v){return v.toLocaleString('pt-BR',{maximumFractionDigits:0})}
 function g(id){return document.getElementById(id)}
 function sv(id,v){const el=g(id);if(el)el.textContent=v}
 
+function atualizarTaxaCart(){
+  const sel = g('f-parc-cart');
+  const opt = sel.options[sel.selectedIndex];
+  g('f-taxa-cart').value = opt.getAttribute('data-taxa');
+}
+
 function calcParcela(pv,taxa,n){
   if(!taxa||taxa===0)return pv/n;
   const r=taxa/100;
@@ -787,8 +802,8 @@ function gerar(){
   const outros=g('f-outros').value||'';
   const valor=parseFloat(g('f-valor').value)||0;
   const descAV=parseFloat(g('f-desc-av').value)||0;
-  const parcCart=parseInt(g('f-parc-cart').value)||12;
-  const taxaCart=parseFloat(g('f-taxa-cart').value)||1.99;
+  const parcCart=parseInt(g('f-parc-cart').value)||10;
+  const taxaCart=parseFloat(g('f-taxa-cart').value)||9.77;
   const parcFin=parseInt(g('f-parc-fin').value)||60;
   const taxaFin=parseFloat(g('f-taxa-fin').value)||0.99;
   const prazo=g('f-prazo').value||'30 dias após aprovação do projeto';
@@ -868,7 +883,12 @@ function gerar(){
   sv('po-fin-desc',`Taxa ${taxaFin}% a.m. — Total R$ ${fmt(parcFinVal*parcFin)}`);
 
   // RETORNO
-  sv('r-payback',payback+' meses ('+Math.ceil(payback/12)+' anos)');
+  const pbAnos=Math.floor(payback/12);
+  const pbMeses=payback%12;
+  const pbStr=pbAnos>0
+    ?(pbMeses>0 ? pbAnos+' ano'+(pbAnos>1?'s':'')+' e '+pbMeses+' mes'+(pbMeses>1?'es':'') : pbAnos+' ano'+(pbAnos>1?'s':''))
+    :payback+' meses';
+  sv('r-payback',pbStr);
   sv('r-econ1','R$ '+fmt(econ1));
   sv('r-econ5','R$ '+fmt(econ5));
   sv('r-econ25','R$ '+fmt(econ25));
