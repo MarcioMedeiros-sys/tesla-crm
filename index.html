@@ -607,7 +607,7 @@ td.td-aviso{color:#f5a623;font-weight:600}
 
 <!-- MODAL KIT -->
 <div class="modal-bg" id="modal-kit">
-  <div class="modal" style="max-width:560px">
+  <div class="modal" style="max-width:700px">
     <h3>📦 Kit Pronto</h3>
     <input type="hidden" id="mk-id">
     <div class="form-grid">
@@ -641,9 +641,28 @@ td.td-aviso{color:#f5a623;font-weight:600}
       </div>
       <div class="form-group">
         <label>Preço Sugerido (R$)</label>
-        <input type="number" id="mk-preco" placeholder="0,00" step="0.01">
+        <input type="number" id="mk-preco" placeholder="0,00" step="0.01" oninput="recalcKitTotal()">
       </div>
     </div>
+
+    <!-- MATERIAIS ELÉTRICOS DO KIT -->
+    <div style="margin-top:18px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <label style="font-weight:600;color:#f5a623">⚡ Materiais Elétricos do Kit</label>
+        <button class="btn btn-secondary" style="padding:5px 12px;font-size:.8rem" onclick="addMaterialKit()">+ Adicionar Material</button>
+      </div>
+      <div id="kit-materiais" style="display:flex;flex-direction:column;gap:6px">
+        <!-- linhas adicionadas dinamicamente -->
+      </div>
+      <div id="kit-materiais-vazio" style="color:#555;font-size:.82rem;text-align:center;padding:10px 0">Nenhum material elétrico adicionado. Clique em "+ Adicionar Material" para incluir cabos, stringbox, conectores, etc.</div>
+    </div>
+
+    <!-- TOTAL DO KIT -->
+    <div style="margin-top:14px;background:#0d1a0d;border:1px solid #1a3a1a;border-radius:8px;padding:10px 14px;display:flex;justify-content:space-between;align-items:center">
+      <span style="color:#888;font-size:.85rem">Total estimado do kit (módulos + inv + materiais):</span>
+      <span id="kit-total-label" style="color:#f5a623;font-weight:700;font-size:1.05rem">R$ 0,00</span>
+    </div>
+
     <div id="kit-validacao" style="margin-top:12px"></div>
     <div class="modal-btns">
       <button class="btn btn-secondary" onclick="fecharModal('modal-kit')">Cancelar</button>
@@ -1105,6 +1124,24 @@ async function salvarProposta() {
   const inversorId = document.getElementById('p-inversor').value || null;
   const valor = parseFloat(document.getElementById('p-valor').value) || 0;
   const desconto = parseFloat(document.getElementById('p-desc').value) || 0;
+  const nModulos = parseInt(document.getElementById('p-nmods').value) || null;
+
+  // kWp SEMPRE calculado dos módulos reais (n_módulos × potência_módulo)
+  // Nunca da estimativa por consumo, que pode divergir após escolha de kit
+  let potenciaKwp = null;
+  if (moduloId && nModulos) {
+    const modObj = equipData.find(e => e.id === moduloId);
+    if (modObj && modObj.potencia_w) {
+      potenciaKwp = (nModulos * modObj.potencia_w) / 1000;
+    }
+  }
+  // Fallback: valor exibido no campo de cálculo (estimativa por consumo)
+  if (!potenciaKwp) {
+    potenciaKwp = parseFloat(document.getElementById('c-kwp').textContent) || null;
+  }
+
+  // Atualizar campo visual para o usuário ver o valor correto antes de salvar
+  if (potenciaKwp) document.getElementById('c-kwp').textContent = potenciaKwp.toFixed(2) + ' kWp';
 
   const dados = {
     numero,
@@ -1112,9 +1149,9 @@ async function salvarProposta() {
     consumo_kwh: parseFloat(document.getElementById('p-cons').value) || null,
     tarifa: parseFloat(document.getElementById('p-tarifa').value) || null,
     irradiacao: parseFloat(document.getElementById('p-irr').value) || 5,
-    potencia_kwp: parseFloat(document.getElementById('c-kwp').textContent) || null,
+    potencia_kwp: potenciaKwp,
     geracao_mensal: parseFloat(document.getElementById('c-ger').textContent) || null,
-    n_modulos: parseInt(document.getElementById('p-nmods').value) || null,
+    n_modulos: nModulos,
     modulo_id: moduloId,
     inversor_id: inversorId,
     valor_sistema: valor,
@@ -1641,7 +1678,10 @@ function renderKits(lista) {
       <td>${k.inv?.nome||'-'}</td>
       <td style="text-align:center">${k.n_modulos||'-'}</td>
       <td>${k.potencia_kwp ? k.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
-      <td>${k.preco_sugerido ? 'R$ '+k.preco_sugerido.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '-'}</td>
+      <td>
+        ${k.preco_sugerido ? 'R$ '+k.preco_sugerido.toLocaleString('pt-BR',{minimumFractionDigits:2}) : '-'}
+        ${(k.materiais_eletricos||[]).length > 0 ? `<br><span style="font-size:.7rem;color:#f5a623">⚡ ${k.materiais_eletricos.length} mat. elétrico${k.materiais_eletricos.length>1?'s':''}</span>` : ''}
+      </td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="editarKit('${k.id}')" title="Editar">✏️</button>
         <button class="btn btn-secondary btn-sm" onclick="duplicarKit('${k.id}')" title="Duplicar" style="background:#1a3a1a;color:#5bf5a0">⧉</button>
@@ -1673,8 +1713,32 @@ function aplicarKit() {
   if (kit.inversor_id) document.getElementById('p-inversor').value = kit.inversor_id;
   if (kit.n_modulos) document.getElementById('p-nmods').value = kit.n_modulos;
   if (kit.preco_sugerido) document.getElementById('p-valor').value = kit.preco_sugerido;
-  document.getElementById('kit-info').textContent = kit.descricao || '';
+
+  // Exibir descrição + lista de materiais elétricos do kit
+  let infoHtml = kit.descricao ? `<span style="color:#aaa">${kit.descricao}</span>` : '';
+  const mats = kit.materiais_eletricos || [];
+  if (mats.length > 0) {
+    infoHtml += `<br><span style="color:#f5a623;font-size:.78rem;font-weight:600">⚡ Materiais elétricos inclusos:</span><ul style="margin:4px 0 0 16px;padding:0;font-size:.78rem;color:#aaa">`;
+    mats.forEach(m => {
+      const equip = equipData.find(e => e.id === m.equip_id);
+      const nome = equip ? equip.nome : m.equip_id;
+      const precoStr = m.preco_unit > 0 ? ` — R$ ${(m.qtd * m.preco_unit).toLocaleString('pt-BR',{minimumFractionDigits:2})}` : '';
+      infoHtml += `<li>${m.qtd}× ${nome}${precoStr}</li>`;
+    });
+    infoHtml += '</ul>';
+  }
+  document.getElementById('kit-info').innerHTML = infoHtml;
+
   calcAuto();
+  // Recalcular kWp a partir dos módulos reais do kit (corrige bug de divergência)
+  if (kit.modulo_id && kit.n_modulos) {
+    const modObj = equipData.find(e => e.id === kit.modulo_id);
+    if (modObj && modObj.potencia_w) {
+      const kwpReal = (kit.n_modulos * modObj.potencia_w) / 1000;
+      document.getElementById('c-kwp').textContent = kwpReal.toFixed(2) + ' kWp';
+    }
+  }
+  validarMPPT();
   toast('Kit "' + kit.nome + '" aplicado!');
 }
 
@@ -1696,6 +1760,16 @@ function abrirModalKit(k=null) {
   document.getElementById('mk-kwp').value = k?.potencia_kwp || '';
   document.getElementById('mk-preco').value = k?.preco_sugerido || '';
   document.getElementById('kit-validacao').innerHTML = '';
+
+  // Limpar e recarregar materiais elétricos
+  const contMat = document.getElementById('kit-materiais');
+  contMat.innerHTML = '';
+  _matKitIdx = 0;
+  const materiais = k?.materiais_eletricos || [];
+  document.getElementById('kit-materiais-vazio').style.display = materiais.length ? 'none' : 'block';
+  materiais.forEach(m => addMaterialKit(m));
+  recalcKitTotal();
+
   document.getElementById('modal-kit').classList.add('aberto');
 }
 
@@ -1707,6 +1781,59 @@ function duplicarKit(id) {
   const copia = {...orig, id: undefined, nome: orig.nome + ' (cópia)'};
   abrirModalKit(copia);
   toast('Editando cópia do kit — ajuste o nome e salve!');
+}
+
+// Contador de linhas de material para IDs únicos
+let _matKitIdx = 0;
+
+function addMaterialKit(mat=null) {
+  const idx = ++_matKitIdx;
+  const container = document.getElementById('kit-materiais');
+  document.getElementById('kit-materiais-vazio').style.display = 'none';
+
+  // Montar options do select com todos equipamentos (exceto módulo e inversor)
+  const tiposValidos = ['cabo_cc','cabo_ca','conector','stringbox','disjuntor','quadro','estrutura','medicao','acessorio'];
+  const optsEquip = equipData
+    .filter(e => tiposValidos.includes(e.tipo))
+    .sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'))
+    .map(e => `<option value="${e.id}" ${mat?.equip_id===e.id?'selected':''}>${e._codigo||''} — ${e.nome}</option>`)
+    .join('');
+
+  const div = document.createElement('div');
+  div.id = `mat-kit-${idx}`;
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 70px 110px 28px;gap:6px;align-items:center';
+  div.innerHTML = `
+    <select style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem" onchange="recalcKitTotal()">
+      <option value="">-- Selecionar material --</option>
+      ${optsEquip}
+    </select>
+    <input type="number" placeholder="Qtd" value="${mat?.qtd||1}" min="1" style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem;text-align:center" oninput="recalcKitTotal()">
+    <input type="number" placeholder="Preço unit." value="${mat?.preco_unit||''}" step="0.01" style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem" oninput="recalcKitTotal()">
+    <button onclick="document.getElementById('mat-kit-${idx}').remove();recalcKitTotal()" style="background:#3a0d0d;border:1px solid #e74c3c;border-radius:6px;color:#e74c3c;cursor:pointer;padding:6px 8px;font-size:.85rem" title="Remover">✕</button>
+  `;
+  container.appendChild(div);
+  recalcKitTotal();
+}
+
+function getMateriaisKit() {
+  const linhas = document.querySelectorAll('#kit-materiais > div[id^="mat-kit-"]');
+  const result = [];
+  linhas.forEach(div => {
+    const [selEquip, inpQtd, inpPreco] = div.querySelectorAll('select, input');
+    const equipId = selEquip.value;
+    const qtd = parseInt(inpQtd.value) || 1;
+    const preco_unit = parseFloat(inpPreco.value) || 0;
+    if (equipId) result.push({ equip_id: equipId, qtd, preco_unit });
+  });
+  return result;
+}
+
+function recalcKitTotal() {
+  const precoPrincipal = parseFloat(document.getElementById('mk-preco').value) || 0;
+  const materiais = getMateriaisKit();
+  const totalMat = materiais.reduce((s, m) => s + (m.qtd * m.preco_unit), 0);
+  const total = precoPrincipal + totalMat;
+  document.getElementById('kit-total-label').textContent = 'R$ ' + total.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
 }
 
 function calcKitPot() {
@@ -1731,6 +1858,7 @@ function calcKitPot() {
       div.innerHTML = `<div style="background:#0d2b0d;border:1px solid #2ecc71;border-radius:6px;padding:10px;font-size:.82rem;color:#2ecc71">✅ Compatibilidade elétrica OK</div>`;
     }
   }
+  recalcKitTotal();
 }
 
 async function salvarKit() {
@@ -1739,6 +1867,13 @@ async function salvarKit() {
   const invId = document.getElementById('mk-inversor').value || null;
   const nMods = parseInt(document.getElementById('mk-nmods').value) || null;
   const kwp = parseFloat(document.getElementById('mk-kwp').value) || null;
+  const materiais = getMateriaisKit();
+
+  // Calcular preço total (principal + materiais)
+  const precoPrincipal = parseFloat(document.getElementById('mk-preco').value) || 0;
+  const totalMat = materiais.reduce((s,m) => s + (m.qtd * m.preco_unit), 0);
+  const precoTotal = precoPrincipal + totalMat || null;
+
   const dados = {
     nome: document.getElementById('mk-nome').value.trim(),
     descricao: document.getElementById('mk-desc').value.trim() || null,
@@ -1746,12 +1881,15 @@ async function salvarKit() {
     inversor_id: invId,
     n_modulos: nMods,
     potencia_kwp: kwp,
-    preco_sugerido: parseFloat(document.getElementById('mk-preco').value) || null,
+    preco_sugerido: precoTotal,
+    materiais_eletricos: materiais.length ? materiais : null,
     atualizado_em: new Date().toISOString()
   };
   if (!dados.nome) { toast('Nome do kit é obrigatório!', false); return; }
-  if (id) await db.from('kits').update(dados).eq('id', id);
-  else await db.from('kits').insert(dados);
+  const { error } = id
+    ? await db.from('kits').update(dados).eq('id', id)
+    : await db.from('kits').insert(dados);
+  if (error) { toast('Erro ao salvar kit: ' + error.message, false); return; }
   toast('Kit salvo!');
   fecharModal('modal-kit');
   carregarKits();
