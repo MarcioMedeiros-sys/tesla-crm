@@ -162,6 +162,7 @@ td.td-aviso{color:#f5a623;font-weight:600}
     <a onclick="ir('equipamentos')" id="nav-equipamentos"><span class="ic">🔧</span> Equipamentos</a>
     <a onclick="ir('kits')" id="nav-kits"><span class="ic">📦</span> Kits Prontos</a>
     <a onclick="ir('simulador')" id="nav-simulador"><span class="ic">⚡</span> Simulador</a>
+    <a onclick="ir('campanha')" id="nav-campanha"><span class="ic">💬</span> Campanha WA</a>
   </nav>
   <div class="sair-btn">
     <button onclick="sair()">🚪 Sair</button>
@@ -443,6 +444,93 @@ td.td-aviso{color:#f5a623;font-weight:600}
       </div>
     </div>
 
+    <!-- CAMPANHA WHATSAPP -->
+    <div class="secao" id="sec-campanha">
+
+      <!-- Área de composição da mensagem -->
+      <div class="form-card" style="margin-bottom:16px">
+        <h3>✏️ Elaborar Mensagem</h3>
+        <div style="margin-bottom:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span style="color:#888;font-size:.8rem;align-self:center">Inserir variável:</span>
+          <button class="btn btn-secondary btn-sm" onclick="inserirVar('{nome}')">👤 {nome}</button>
+          <button class="btn btn-secondary btn-sm" onclick="inserirVar('{cidade}')">📍 {cidade}</button>
+          <button class="btn btn-secondary btn-sm" onclick="inserirVar('{kwp}')">⚡ {kwp}</button>
+          <button class="btn btn-secondary btn-sm" onclick="inserirVar('{data_instalacao}')">📅 {data_instalacao}</button>
+        </div>
+        <textarea id="camp-msg" rows="6" style="width:100%;padding:12px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.92rem;resize:vertical;font-family:inherit"
+          placeholder="Digite sua mensagem aqui...&#10;&#10;Use as variáveis acima para personalizar. Ex:&#10;Olá {nome}! Temos uma novidade especial para você 🌞"></textarea>
+
+        <!-- Prévia -->
+        <div style="margin-top:10px">
+          <span style="color:#888;font-size:.8rem">📋 Prévia (primeiro cliente selecionado):</span>
+          <div id="camp-previa" style="margin-top:6px;padding:12px;background:#111;border-radius:8px;border:1px solid #333;color:#ddd;font-size:.88rem;white-space:pre-wrap;min-height:48px;line-height:1.5"></div>
+        </div>
+
+        <!-- Anexo de mídia -->
+        <div style="margin-top:12px;display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+          <label style="cursor:pointer;display:flex;align-items:center;gap:8px;background:#1a1a1a;border:1px solid #444;border-radius:7px;padding:8px 14px;font-size:.85rem;color:#ccc">
+            📎 Anexar mídia (imagem/PDF)
+            <input type="file" id="camp-midia" accept="image/*,.pdf" style="display:none" onchange="prevMidia(this)">
+          </label>
+          <span id="camp-midia-nome" style="color:#888;font-size:.82rem"></span>
+          <button id="camp-midia-rm" onclick="removerMidia()" style="display:none" class="btn btn-danger btn-sm">✕ Remover</button>
+        </div>
+        <div id="camp-midia-prev" style="margin-top:8px"></div>
+      </div>
+
+      <!-- Seleção de clientes -->
+      <div class="form-card">
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
+          <h3 style="margin:0">👥 Selecionar Clientes</h3>
+          <input type="text" id="camp-busca" placeholder="🔍 Buscar cliente..." oninput="filtrarCampanha()"
+            style="flex:1;min-width:180px;padding:8px 12px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.88rem">
+          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosCamp(true)">✅ Todos</button>
+          <button class="btn btn-secondary btn-sm" onclick="selecionarTodosCamp(false)">⬜ Nenhum</button>
+          <span id="camp-contagem" style="color:#f5a623;font-size:.88rem;font-weight:700">0 selecionados</span>
+        </div>
+
+        <div class="tabela-wrap" style="max-height:320px;overflow-y:auto">
+          <table>
+            <thead><tr>
+              <th style="width:40px"><input type="checkbox" id="camp-chk-all" onchange="selecionarTodosCamp(this.checked)" style="accent-color:#f5a623"></th>
+              <th>Nome</th><th>Telefone</th><th>Cidade</th><th>Sistema</th><th>Instalação</th>
+            </tr></thead>
+            <tbody id="tabela-campanha"><tr><td colspan="6" class="vazio">Carregando clientes...</td></tr></tbody>
+          </table>
+        </div>
+      </div>
+
+      <!-- Botão de disparo -->
+      <div style="background:#1a1a1a;border:1px solid #222;border-radius:10px;padding:20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+        <div style="flex:1">
+          <div style="color:#f5a623;font-weight:700;font-size:.95rem" id="camp-status-label">Configure a mensagem e selecione os clientes</div>
+          <div style="color:#666;font-size:.8rem;margin-top:2px">O WhatsApp abrirá cliente por cliente. Envie e clique em "Próximo ▶"</div>
+        </div>
+        <button class="btn btn-primary" onclick="iniciarCampanha()" id="camp-btn-iniciar" disabled style="opacity:.5;min-width:160px">
+          🚀 Iniciar Campanha
+        </button>
+      </div>
+
+      <!-- Painel de envio (aparece durante a campanha) -->
+      <div id="camp-painel-envio" style="display:none;margin-top:16px;background:#111;border:2px solid #25D366;border-radius:12px;padding:24px;text-align:center">
+        <div style="color:#25D366;font-size:1.1rem;font-weight:700;margin-bottom:6px">💬 Enviando para: <span id="camp-env-nome" style="color:#fff"></span></div>
+        <div style="color:#888;font-size:.85rem;margin-bottom:16px">Cliente <span id="camp-env-idx"></span> de <span id="camp-env-total"></span></div>
+        <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+          <button class="btn" style="background:#25D366;color:#fff;font-size:1rem;padding:12px 28px" onclick="abrirWhatsAtual()">
+            💬 Abrir WhatsApp
+          </button>
+          <button class="btn btn-primary" style="font-size:1rem;padding:12px 28px" onclick="proximoCamp()">
+            Próximo ▶
+          </button>
+          <button class="btn btn-danger" onclick="pararCampanha()">⏹ Parar</button>
+        </div>
+        <div id="camp-barra-prog" style="margin-top:16px;background:#222;border-radius:99px;height:8px;overflow:hidden">
+          <div id="camp-barra-fill" style="height:100%;background:#25D366;border-radius:99px;transition:width .4s;width:0%"></div>
+        </div>
+      </div>
+
+    </div><!-- /sec-campanha -->
+
   </div>
 </div>
 
@@ -721,6 +809,237 @@ function sair() {
 }
 
 // ============================================================
+// CAMPANHA WHATSAPP
+// ============================================================
+let _campClientes = [];      // lista completa
+let _campFiltrados = [];     // após busca
+let _campSelecionados = [];  // ids marcados
+let _campFila = [];          // fila de envio
+let _campIdx = 0;
+let _campMidiaUrl = null;
+let _campMidiaNome = null;
+
+// Carrega clientes quando entra na seção
+const _irOrig = ir;
+function ir(sec) {
+  _irOrig(sec);
+  if (sec === 'campanha') carregarClientesCamp();
+}
+
+async function carregarClientesCamp() {
+  const tbody = document.getElementById('tabela-campanha');
+  tbody.innerHTML = '<tr><td colspan="6" class="vazio">Carregando...</td></tr>';
+  try {
+    const { data, error } = await db.from('clientes')
+      .select('id,nome,telefone,cidade,kwp_instalado,data_instalacao')
+      .order('nome');
+    if (error) throw error;
+    _campClientes = data || [];
+    _campFiltrados = [..._campClientes];
+    renderTabelaCamp();
+  } catch(e) {
+    tbody.innerHTML = `<tr><td colspan="6" class="vazio" style="color:#f55">Erro: ${e.message}</td></tr>`;
+  }
+}
+
+function renderTabelaCamp() {
+  const tbody = document.getElementById('tabela-campanha');
+  if (!_campFiltrados.length) {
+    tbody.innerHTML = '<tr><td colspan="6" class="vazio">Nenhum cliente encontrado</td></tr>';
+    atualizarContCamp();
+    return;
+  }
+  tbody.innerHTML = _campFiltrados.map(c => {
+    const sel = _campSelecionados.includes(c.id);
+    const kwp = c.kwp_instalado ? `${c.kwp_instalado} kWp` : '—';
+    const inst = c.data_instalacao ? new Date(c.data_instalacao+'T12:00').toLocaleDateString('pt-BR') : '—';
+    return `<tr>
+      <td><input type="checkbox" class="camp-chk" value="${c.id}"
+        ${sel?'checked':''} onchange="toggleCampCliente('${c.id}',this.checked)"
+        style="accent-color:#f5a623;width:16px;height:16px"></td>
+      <td style="font-weight:600">${c.nome||'—'}</td>
+      <td>${c.telefone||'—'}</td>
+      <td>${c.cidade||'—'}</td>
+      <td style="color:#f5a623">${kwp}</td>
+      <td>${inst}</td>
+    </tr>`;
+  }).join('');
+  atualizarContCamp();
+  atualizarPreviaMsg();
+}
+
+function toggleCampCliente(id, checked) {
+  if (checked && !_campSelecionados.includes(id)) _campSelecionados.push(id);
+  else if (!checked) _campSelecionados = _campSelecionados.filter(x => x !== id);
+  atualizarContCamp();
+  atualizarPreviaMsg();
+}
+
+function selecionarTodosCamp(sel) {
+  if (sel) {
+    _campSelecionados = [...new Set([..._campSelecionados, ..._campFiltrados.map(c=>c.id)])];
+  } else {
+    const ids = _campFiltrados.map(c=>c.id);
+    _campSelecionados = _campSelecionados.filter(id => !ids.includes(id));
+  }
+  renderTabelaCamp();
+}
+
+function filtrarCampanha() {
+  const q = document.getElementById('camp-busca').value.toLowerCase();
+  _campFiltrados = _campClientes.filter(c =>
+    (c.nome||'').toLowerCase().includes(q) ||
+    (c.telefone||'').includes(q) ||
+    (c.cidade||'').toLowerCase().includes(q)
+  );
+  renderTabelaCamp();
+}
+
+function atualizarContCamp() {
+  const n = _campSelecionados.length;
+  document.getElementById('camp-contagem').textContent = `${n} selecionado${n!==1?'s':''}`;
+  const btn = document.getElementById('camp-btn-iniciar');
+  const msg = document.getElementById('camp-msg').value.trim();
+  const ok = n > 0 && msg.length > 0;
+  btn.disabled = !ok;
+  btn.style.opacity = ok ? '1' : '.5';
+  document.getElementById('camp-status-label').textContent = ok
+    ? `✅ Pronto! ${n} cliente${n!==1?'s':''} selecionado${n!==1?'s':''}`
+    : 'Configure a mensagem e selecione os clientes';
+}
+
+// Atualiza prévia com dados do primeiro cliente selecionado
+function atualizarPreviaMsg() {
+  const msg = document.getElementById('camp-msg').value;
+  const previa = document.getElementById('camp-previa');
+  if (!msg.trim()) { previa.textContent = ''; return; }
+  const primeiro = _campClientes.find(c => _campSelecionados.includes(c.id));
+  previa.textContent = aplicarVars(msg, primeiro || {nome:'João Silva', cidade:'Mossoró', kwp_instalado:'5.81', data_instalacao: new Date().toISOString().slice(0,10)});
+}
+
+function aplicarVars(msg, cliente) {
+  const inst = cliente.data_instalacao
+    ? new Date(cliente.data_instalacao+'T12:00').toLocaleDateString('pt-BR')
+    : '—';
+  return msg
+    .replace(/\{nome\}/gi, cliente.nome || '')
+    .replace(/\{cidade\}/gi, cliente.cidade || '')
+    .replace(/\{kwp\}/gi, cliente.kwp_instalado ? cliente.kwp_instalado + ' kWp' : '')
+    .replace(/\{data_instalacao\}/gi, inst);
+}
+
+function inserirVar(v) {
+  const ta = document.getElementById('camp-msg');
+  const s = ta.selectionStart, e = ta.selectionEnd;
+  ta.value = ta.value.slice(0,s) + v + ta.value.slice(e);
+  ta.selectionStart = ta.selectionEnd = s + v.length;
+  ta.focus();
+  atualizarContCamp();
+  atualizarPreviaMsg();
+}
+
+// Evento de digitação na mensagem
+document.addEventListener('DOMContentLoaded', () => {
+  const ta = document.getElementById('camp-msg');
+  if (ta) {
+    ta.addEventListener('input', () => { atualizarContCamp(); atualizarPreviaMsg(); });
+  }
+});
+
+// Mídia
+function prevMidia(input) {
+  const f = input.files[0];
+  if (!f) return;
+  _campMidiaNome = f.name;
+  document.getElementById('camp-midia-nome').textContent = f.name;
+  document.getElementById('camp-midia-rm').style.display = 'inline-block';
+  const prev = document.getElementById('camp-midia-prev');
+  if (f.type.startsWith('image/')) {
+    const url = URL.createObjectURL(f);
+    _campMidiaUrl = url;
+    prev.innerHTML = `<img src="${url}" style="max-height:120px;border-radius:8px;border:1px solid #444">`;
+  } else {
+    _campMidiaUrl = null;
+    prev.innerHTML = `<span style="color:#f5a623;font-size:.85rem">📄 ${f.name}</span>`;
+  }
+}
+
+function removerMidia() {
+  document.getElementById('camp-midia').value = '';
+  document.getElementById('camp-midia-nome').textContent = '';
+  document.getElementById('camp-midia-rm').style.display = 'none';
+  document.getElementById('camp-midia-prev').innerHTML = '';
+  _campMidiaUrl = null;
+  _campMidiaNome = null;
+}
+
+// Iniciar campanha
+function iniciarCampanha() {
+  const msg = document.getElementById('camp-msg').value.trim();
+  if (!msg || !_campSelecionados.length) return;
+  _campFila = _campClientes.filter(c => _campSelecionados.includes(c.id));
+  _campIdx = 0;
+  document.getElementById('camp-painel-envio').style.display = 'block';
+  document.getElementById('camp-painel-envio').scrollIntoView({behavior:'smooth'});
+  mostrarClienteAtual();
+}
+
+function mostrarClienteAtual() {
+  if (_campIdx >= _campFila.length) {
+    finalizarCampanha();
+    return;
+  }
+  const c = _campFila[_campIdx];
+  const total = _campFila.length;
+  document.getElementById('camp-env-nome').textContent = c.nome || 'Cliente';
+  document.getElementById('camp-env-idx').textContent = _campIdx + 1;
+  document.getElementById('camp-env-total').textContent = total;
+  const pct = Math.round((_campIdx / total) * 100);
+  document.getElementById('camp-barra-fill').style.width = pct + '%';
+}
+
+function abrirWhatsAtual() {
+  if (_campIdx >= _campFila.length) return;
+  const c = _campFila[_campIdx];
+  const msg = aplicarVars(document.getElementById('camp-msg').value, c);
+  let tel = (c.telefone||'').replace(/\D/g,'');
+  if (tel.length <= 11) tel = '55' + tel;
+  const url = tel.length >= 12
+    ? `https://wa.me/${tel}?text=${encodeURIComponent(msg)}`
+    : `https://wa.me/?text=${encodeURIComponent(msg)}`;
+  window.open(url, '_blank');
+}
+
+function proximoCamp() {
+  _campIdx++;
+  if (_campIdx >= _campFila.length) {
+    finalizarCampanha();
+  } else {
+    mostrarClienteAtual();
+    // Abre automaticamente o próximo
+    setTimeout(() => abrirWhatsAtual(), 600);
+  }
+}
+
+function pararCampanha() {
+  document.getElementById('camp-painel-envio').style.display = 'none';
+  _campFila = [];
+  _campIdx = 0;
+}
+
+function finalizarCampanha() {
+  document.getElementById('camp-barra-fill').style.width = '100%';
+  document.getElementById('camp-env-nome').textContent = '✅ Campanha concluída!';
+  document.getElementById('camp-env-idx').textContent = _campFila.length;
+  setTimeout(() => {
+    document.getElementById('camp-painel-envio').style.display = 'none';
+    toast(`Campanha concluída! ${_campFila.length} mensagens enviadas.`);
+    _campFila = [];
+    _campIdx = 0;
+  }, 2000);
+}
+
+// ============================================================
 // INIT
 // ============================================================
 async function init() {
@@ -743,7 +1062,7 @@ async function init() {
 // NAVEGAÇÃO
 // ============================================================
 let secaoAtual = 'dashboard';
-const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos',kits:'📦 Kits Prontos',simulador:'⚡ Simulador de String'};
+const titulos = {dashboard:'Dashboard',clientes:'Clientes',propostas:'Propostas','nova-proposta':'Nova Proposta',equipamentos:'Equipamentos',kits:'📦 Kits Prontos',simulador:'⚡ Simulador de String',campanha:'💬 Campanha WhatsApp'};
 
 function ir(sec) {
   document.querySelectorAll('.secao').forEach(s => s.classList.remove('ativa'));
