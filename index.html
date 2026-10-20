@@ -1317,7 +1317,7 @@ function renderPropostas(lista) {
       <td>${new Date(p.criado_em).toLocaleDateString('pt-BR')}</td>
       <td>
         <button class="btn btn-primary btn-sm" onclick="gerarProposta('${p.id}')" title="Gerar PDF">📄 PDF</button>
-        ${p.clientes?.telefone ? `<button class="btn btn-sm" style="background:#25d366;color:#fff" onclick="enviarWhatsApp('${p.clientes.telefone}','${p.numero||'TES'}')" title="WhatsApp">💬</button>` : ''}
+        ${p.clientes?.telefone ? `<button class="btn btn-sm" style="background:#25d366;color:#fff" onclick="enviarWhatsApp('${p.id}')" title="WhatsApp">💬</button>` : ''}
         <select class="btn btn-sm" style="padding:4px 6px" onchange="mudarStatus('${p.id}',this.value)">
           <option value="">Status</option>
           <option value="rascunho">Rascunho</option>
@@ -1383,10 +1383,65 @@ async function gerarProposta(id) {
   window.open(url, '_blank');
 }
 
-function enviarWhatsApp(telefone, numero) {
-  const tel = telefone.replace(/\D/g,'');
-  const msg = encodeURIComponent(`Olá! Segue a proposta *${numero}* da Tesla Energia Solar. Qualquer dúvida estou à disposição! ⚡`);
-  const url = `https://wa.me/55${tel}?text=${msg}`;
+async function enviarWhatsApp(id) {
+  const { data: p } = await db.from('propostas')
+    .select('*,clientes(*),equipamentos_modulo:modulo_id(*),equipamentos_inversor:inversor_id(*)')
+    .eq('id', id).single();
+  if (!p) { toast('Proposta não encontrada', false); return; }
+
+  const c = p.clientes || {};
+  const mod = p.equipamentos_modulo || {};
+  const inv = p.equipamentos_inversor || {};
+
+  // Monta os mesmos parâmetros de gerarProposta para gerar o link
+  const params = new URLSearchParams({
+    nome: c.nome || '',
+    cpf: c.cpf_cnpj || '',
+    email: c.email || '',
+    tel: c.telefone || '',
+    cep: c.cep || '',
+    cidade: (c.cidade && c.estado) ? c.cidade+'/'+c.estado : (c.cidade||''),
+    end: [c.logradouro, c.numero, c.bairro].filter(Boolean).join(', '),
+    cons: p.consumo_kwh || '',
+    tarifa: p.tarifa || '',
+    irr: p.irradiacao || '',
+    pot: p.potencia_kwp || '',
+    nmods: p.n_modulos || '',
+    prod: p.geracao_mensal || '',
+    modulo: mod.nome || '',
+    inversor: inv.nome || '',
+    valor: p.valor_final || '',
+    num: p.numero || '',
+    validade: (p.validade_dias || 15) + ' dias',
+    pgto: p.forma_pagamento || '',
+    parc: p.parcelas || '',
+    obs: p.observacoes || '',
+    vendedor: p.nome_vendedor || 'Rodrigo',
+  });
+
+  const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
+  const linkProposta = base + 'proposta_tesla.html?' + params.toString();
+
+  const numero = p.numero || 'TES';
+  const nomeCliente = c.nome ? c.nome.split(' ')[0] : 'cliente';
+  const mensagem =
+`Olá, ${nomeCliente}! 😊
+
+Segue abaixo a proposta comercial da *Tesla Energia Solar* para o seu sistema fotovoltaico.
+
+Para visualizar ou baixar a proposta em PDF, acesse o link abaixo 👇
+${linkProposta}
+
+Qualquer dúvida, estamos à disposição!
+
+*Tesla Energia Solar* 🌞
+📍 Mossoró/RN`;
+
+  let tel = (c.telefone||'').replace(/\D/g,'');
+  if (tel.length <= 11) tel = '55' + tel;
+  const url = tel.length >= 12
+    ? `https://wa.me/${tel}?text=${encodeURIComponent(mensagem)}`
+    : `https://wa.me/?text=${encodeURIComponent(mensagem)}`;
   window.open(url, '_blank');
 }
 
