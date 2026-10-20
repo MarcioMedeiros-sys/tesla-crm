@@ -980,13 +980,14 @@ function enviarWhatsApp(){
   const validade = (g('f-validade')||{value:''}).value || '';
   const validadeStr = validade ? validade.replace(/\s*dias/i,'').trim()+' dias' : '';
 
-  // Monta link da proposta com os dados do cliente atual
-  const nomeParam  = encodeURIComponent((g('f-nome')||{value:''}).value || '');
-  const cpfParam   = encodeURIComponent(((g('f-cpf')||{value:''}).value || '').replace(/\D/g,''));
-  const baseUrl    = window.location.origin + window.location.pathname;
-  const linkProposta = nomeParam || cpfParam
-    ? `${baseUrl}?nome=${nomeParam}&cpf=${cpfParam}`
-    : baseUrl;
+  // Monta link completo da proposta com todos os dados do formulário
+  const baseUrl = window.location.origin + window.location.pathname;
+  const gv = id => { const el = document.getElementById(id); return el ? el.value || '' : ''; };
+  const params = new URLSearchParams();
+  const campos = ['nome','cpf','email','tel','cep','cidade','end','cons','tarifa','irr',
+                  'pot','nmods','prod','modulo','inversor','estrutura','ligacao','valor','num','validade','prazo'];
+  campos.forEach(c => { const v = gv('f-'+c); if(v) params.set(c, v); });
+  const linkProposta = baseUrl + (params.toString() ? '?' + params.toString() : '');
 
   // Monta mensagem
   const linhas = [
@@ -1264,16 +1265,27 @@ setTimeout(carregarSelectsDoCSV, 500);
     }
     // Dispara cálculo automático
     if (typeof calcAutoSistema === 'function') calcAutoSistema();
-    // Gera a proposta automaticamente
-    setTimeout(() => { if (typeof gerar === 'function') gerar(); }, 800);
+    // Gera a proposta automaticamente — aguarda selects de módulo/inversor carregarem
+    function tentarGerar(tentativas) {
+      const selMod = document.getElementById('modSelect');
+      const selInv = document.getElementById('invSelect');
+      const modOk = !selMod || selMod.options.length > 1;
+      const invOk = !selInv || selInv.options.length > 1;
+      if ((modOk && invOk) || tentativas <= 0) {
+        if (typeof gerar === 'function') gerar();
+      } else {
+        setTimeout(() => tentarGerar(tentativas - 1), 300);
+      }
+    }
+    tentarGerar(10); // tenta por até 3s
   }
 
   if (document.readyState === 'loading') {
-    document.addEventListener('DOMContentLoaded', () => setTimeout(preencher, 500));
+    document.addEventListener('DOMContentLoaded', () => setTimeout(preencher, 600));
   } else {
-    setTimeout(preencher, 500);
+    setTimeout(preencher, 600);
   }
-  window.addEventListener('load', () => setTimeout(preencher, 300));
+  window.addEventListener('load', () => setTimeout(preencher, 400));
 })();
 
 // Imprimir PDF e voltar ao topo do formulário depois
