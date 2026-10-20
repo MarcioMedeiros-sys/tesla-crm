@@ -986,6 +986,14 @@ function enviarWhatsApp(){
     }catch(e){}
   }
 
+  // Monta link da proposta com os dados do cliente atual
+  const nomeParam  = encodeURIComponent((g('f-nome')||{value:''}).value || '');
+  const cpfParam   = encodeURIComponent(((g('f-cpf')||{value:''}).value || '').replace(/\D/g,''));
+  const baseUrl    = window.location.origin + window.location.pathname;
+  const linkProposta = nomeParam || cpfParam
+    ? `${baseUrl}?nome=${nomeParam}&cpf=${cpfParam}`
+    : baseUrl;
+
   // Monta mensagem
   const linhas = [
     `Olá, ${nome}! 😊`,
@@ -997,6 +1005,7 @@ function enviarWhatsApp(){
     validadeStr ? `📅 *Válida até:* ${validadeStr}` : '',
     ``,
     `Para visualizar ou baixar a proposta em PDF, acesse o link abaixo 👇`,
+    linkProposta,
     ``,
     `Qualquer dúvida, estamos à disposição!`,
     ``,
@@ -1173,6 +1182,7 @@ function recalcPorNmods(){
 }
 
 // Usuário ajustou manualmente a potência → recalcula nº de módulos
+// (não sobrescreve f-nmods se o usuário já digitou um valor lá)
 function recalcPorPot(){
   const pot    = parseFloat(document.getElementById('f-pot').value)||0;
   const irr    = parseFloat(document.getElementById('f-irr').value)||5.8;
@@ -1183,8 +1193,10 @@ function recalcPorPot(){
   if(pot<=0) return;
   set('f-prod', Math.round(pot * irr * 30 * ef));
   if(modSel){
-    const nMods = Math.ceil(pot * 1000 / modSel.pot);
-    set('f-nmods', nMods);
+    // Só recalcula nMods se o campo estiver vazio (usuário não digitou manualmente)
+    const nModsAtual = parseInt(document.getElementById('f-nmods').value)||0;
+    const nMods = nModsAtual > 0 ? nModsAtual : Math.ceil(pot * 1000 / modSel.pot);
+    if(nModsAtual <= 0) set('f-nmods', nMods);
     set('f-area',  (nMods * 2.4).toFixed(1));
     const fi = document.getElementById('f-modulo');
     if(fi) fi.value = nMods+'x '+modSel.fab+' '+modSel.mod;
