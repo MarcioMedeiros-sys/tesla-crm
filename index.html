@@ -196,7 +196,9 @@ td.td-aviso{color:#f5a623;font-weight:600}
     <!-- CLIENTES -->
     <div class="secao" id="sec-clientes">
       <div class="barra-busca">
-        <input type="text" placeholder="Buscar cliente, cidade, inversor..." id="busca-cliente" oninput="filtrarClientes()">
+        <input type="text" placeholder="Buscar cliente, cidade..." id="busca-cliente" oninput="filtrarClientes()">
+        <input type="text" placeholder="🔆 Filtrar por módulo..." id="busca-modulo" oninput="filtrarClientes()" style="max-width:200px">
+        <input type="text" placeholder="⚡ Filtrar por inversor..." id="busca-inversor" oninput="filtrarClientes()" style="max-width:200px">
         <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo</button>
         <label class="btn btn-secondary" style="cursor:pointer" title="Importar planilha Excel">
           📥 Importar Excel
@@ -205,8 +207,8 @@ td.td-aviso{color:#f5a623;font-weight:600}
       </div>
       <div class="tabela-wrap">
         <table>
-          <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade</th><th>Potência</th><th>Inversor</th><th>Ano</th><th>Ações</th></tr></thead>
-          <tbody id="tabela-clientes"><tr><td colspan="7" class="vazio">Carregando...</td></tr></tbody>
+          <thead><tr><th>Nome</th><th>Telefone</th><th>Cidade</th><th>Potência</th><th>Módulo</th><th>Inversor</th><th>Ano</th><th>Ações</th></tr></thead>
+          <tbody id="tabela-clientes"><tr><td colspan="8" class="vazio">Carregando...</td></tr></tbody>
         </table>
       </div>
     </div>
@@ -1126,14 +1128,15 @@ async function carregarClientes() {
 
 function renderClientes(lista) {
   const tb = document.getElementById('tabela-clientes');
-  if (!lista.length) { tb.innerHTML = '<tr><td colspan="7" class="vazio"><div class="ic">👥</div>Nenhum cliente cadastrado</td></tr>'; return; }
+  if (!lista.length) { tb.innerHTML = '<tr><td colspan="8" class="vazio"><div class="ic">👥</div>Nenhum cliente cadastrado</td></tr>'; return; }
   tb.innerHTML = lista.map(c => `
     <tr>
       <td><strong>${c.nome}</strong>${c.uc_geradora?'<br><small style="color:#666">UC: '+c.uc_geradora+'</small>':''}</td>
       <td>${c.telefone||'-'}</td>
       <td>${c.cidade||'-'}${c.estado?'/'+c.estado:''}</td>
       <td>${c.potencia_kwp ? c.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
-      <td style="font-size:.8rem">${c.fabricante_inversor||''} ${c.modelo_inversor||''||'-'}</td>
+      <td style="font-size:.8rem">${[c.fabricante_modulos,c.modelo_modulos].filter(Boolean).join(' ')||'-'}</td>
+      <td style="font-size:.8rem">${[c.fabricante_inversor,c.modelo_inversor].filter(Boolean).join(' ')||'-'}</td>
       <td>${c.ano_instalacao||'-'}</td>
       <td>
         <button class="btn btn-secondary btn-sm" onclick="editarCliente('${c.id}')">✏️</button>
@@ -1145,14 +1148,22 @@ function renderClientes(lista) {
 
 function filtrarClientes() {
   const q = document.getElementById('busca-cliente').value.toLowerCase();
-  renderClientes(todosClientes.filter(c =>
-    c.nome.toLowerCase().includes(q) ||
-    (c.telefone||'').includes(q) ||
-    (c.cidade||'').toLowerCase().includes(q) ||
-    (c.fabricante_inversor||'').toLowerCase().includes(q) ||
-    (c.modelo_inversor||'').toLowerCase().includes(q) ||
-    (c.uc_geradora||'').includes(q)
-  ));
+  const qMod = document.getElementById('busca-modulo').value.toLowerCase();
+  const qInv = document.getElementById('busca-inversor').value.toLowerCase();
+  renderClientes(todosClientes.filter(c => {
+    const geralOk = !q ||
+      c.nome.toLowerCase().includes(q) ||
+      (c.telefone||'').includes(q) ||
+      (c.cidade||'').toLowerCase().includes(q) ||
+      (c.uc_geradora||'').includes(q);
+    const moduloOk = !qMod ||
+      (c.fabricante_modulos||'').toLowerCase().includes(qMod) ||
+      (c.modelo_modulos||'').toLowerCase().includes(qMod);
+    const inversorOk = !qInv ||
+      (c.fabricante_inversor||'').toLowerCase().includes(qInv) ||
+      (c.modelo_inversor||'').toLowerCase().includes(qInv);
+    return geralOk && moduloOk && inversorOk;
+  }));
 }
 
 function abaModalCliente(aba) {
