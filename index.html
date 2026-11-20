@@ -204,6 +204,8 @@ td.td-aviso{color:#f5a623;font-weight:600}
           📥 Importar Excel
           <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarClientesExcel(this)">
         </label>
+        <button class="btn btn-secondary" onclick="exportarClientesExcel()" title="Exportar lista filtrada para Excel">📊 Excel</button>
+        <button class="btn btn-secondary" onclick="exportarClientesPDF()" title="Exportar lista filtrada para PDF">📄 PDF</button>
       </div>
       <div class="tabela-wrap">
         <table>
@@ -1164,6 +1166,85 @@ function filtrarClientes() {
       (c.modelo_inversor||'').toLowerCase().includes(qInv);
     return geralOk && moduloOk && inversorOk;
   }));
+}
+
+function getClientesFiltrados() {
+  const q = document.getElementById('busca-cliente').value.toLowerCase();
+  const qMod = document.getElementById('busca-modulo').value.toLowerCase();
+  const qInv = document.getElementById('busca-inversor').value.toLowerCase();
+  return todosClientes.filter(c => {
+    const geralOk = !q || c.nome.toLowerCase().includes(q) || (c.telefone||'').includes(q) || (c.cidade||'').toLowerCase().includes(q) || (c.uc_geradora||'').includes(q);
+    const moduloOk = !qMod || (c.fabricante_modulos||'').toLowerCase().includes(qMod) || (c.modelo_modulos||'').toLowerCase().includes(qMod);
+    const inversorOk = !qInv || (c.fabricante_inversor||'').toLowerCase().includes(qInv) || (c.modelo_inversor||'').toLowerCase().includes(qInv);
+    return geralOk && moduloOk && inversorOk;
+  });
+}
+
+function exportarClientesExcel() {
+  const lista = getClientesFiltrados();
+  if (!lista.length) { alert('Nenhum cliente para exportar.'); return; }
+  const rows = lista.map(c => ({
+    'Nome': c.nome||'',
+    'Telefone': c.telefone||'',
+    'Cidade': c.cidade||'',
+    'Estado': c.estado||'',
+    'UC Geradora': c.uc_geradora||'',
+    'Potência (kWp)': c.potencia_kwp||'',
+    'Módulo Fabricante': c.fabricante_modulos||'',
+    'Módulo Modelo': c.modelo_modulos||'',
+    'Qtd Módulos': c.qtd_modulos||'',
+    'Inversor Fabricante': c.fabricante_inversor||'',
+    'Inversor Modelo': c.modelo_inversor||'',
+    'Qtd Inversores': c.qtd_inversores||'',
+    'Ano Instalação': c.ano_instalacao||'',
+    'CPF/CNPJ': c.cpf_cnpj||'',
+    'Email': c.email||'',
+  }));
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Clientes');
+  const data = new Date().toISOString().slice(0,10);
+  XLSX.writeFile(wb, `clientes_tesla_${data}.xlsx`);
+}
+
+function exportarClientesPDF() {
+  const lista = getClientesFiltrados();
+  if (!lista.length) { alert('Nenhum cliente para exportar.'); return; }
+  const data = new Date().toLocaleDateString('pt-BR');
+  let html = `<!DOCTYPE html><html><head><meta charset="utf-8">
+  <title>Clientes Tesla Energia</title>
+  <style>
+    body{font-family:Arial,sans-serif;font-size:11px;margin:20px}
+    h2{color:#e85d04;margin-bottom:4px}
+    p{color:#555;margin:0 0 12px}
+    table{width:100%;border-collapse:collapse}
+    th{background:#e85d04;color:#fff;padding:6px 8px;text-align:left;font-size:10px}
+    td{padding:5px 8px;border-bottom:1px solid #eee;font-size:10px}
+    tr:nth-child(even){background:#f9f9f9}
+  </style></head><body>
+  <h2>Tesla Energia Solar — Relatório de Clientes</h2>
+  <p>Gerado em ${data} · ${lista.length} cliente(s)</p>
+  <table><thead><tr>
+    <th>Nome</th><th>Telefone</th><th>Cidade</th><th>Potência</th><th>Módulo</th><th>Inversor</th><th>Ano</th>
+  </tr></thead><tbody>`;
+  lista.forEach(c => {
+    const modulo = [c.fabricante_modulos, c.modelo_modulos].filter(Boolean).join(' ') || '-';
+    const inversor = [c.fabricante_inversor, c.modelo_inversor].filter(Boolean).join(' ') || '-';
+    html += `<tr>
+      <td>${c.nome||'-'}</td>
+      <td>${c.telefone||'-'}</td>
+      <td>${c.cidade||'-'}${c.estado?'/'+c.estado:''}</td>
+      <td>${c.potencia_kwp ? c.potencia_kwp.toFixed(2)+' kWp' : '-'}</td>
+      <td>${modulo}</td>
+      <td>${inversor}</td>
+      <td>${c.ano_instalacao||'-'}</td>
+    </tr>`;
+  });
+  html += `</tbody></table></body></html>`;
+  const win = window.open('', '_blank');
+  win.document.write(html);
+  win.document.close();
+  win.print();
 }
 
 function abaModalCliente(aba) {
