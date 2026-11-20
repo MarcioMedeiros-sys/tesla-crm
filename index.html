@@ -1994,19 +1994,19 @@ async function salvarEquip() {
 // SELECTS EQUIPAMENTOS (Nova Proposta)
 // ============================================================
 async function popularSelectsEquip() {
-  const { data } = await db.from('equipamentos').select('*').order('tipo').order('potencia_w');
+  const { data } = await db.from('equipamentos').select('*').order('nome');
   equipData = data || [];
-  const mods = data?.filter(e => e.tipo === 'modulo') || [];
-  const invs = data?.filter(e => e.tipo === 'inversor') || [];
+  const mods = data?.filter(e => e.tipo === 'modulo').sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR')) || [];
+  const invs = data?.filter(e => e.tipo === 'inversor').sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR')) || [];
 
   const smod = document.getElementById('p-modulo');
   const sinv = document.getElementById('p-inversor');
   const vmod = smod.value, vinv = sinv.value;
 
   smod.innerHTML = '<option value="">-- Selecionar módulo --</option>' +
-    mods.map(m => `<option value="${m.id}">${m.nome} - R$ ${m.preco?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</option>`).join('');
+    mods.map(m => `<option value="${m.id}">${m.nome}${m.preco ? ' - R$ '+m.preco.toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''}</option>`).join('');
   sinv.innerHTML = '<option value="">-- Selecionar inversor --</option>' +
-    invs.map(i => `<option value="${i.id}">${i.nome} - R$ ${i.preco?.toLocaleString('pt-BR',{minimumFractionDigits:2})}</option>`).join('');
+    invs.map(i => `<option value="${i.id}">${i.nome}${i.preco ? ' - R$ '+i.preco.toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''}</option>`).join('');
 
   if (vmod) smod.value = vmod;
   if (vinv) sinv.value = vinv;
@@ -2259,8 +2259,8 @@ function aplicarKit() {
 
 function abrirModalKit(k=null) {
   // Popular selects do modal
-  const mods = equipData.filter(e => e.tipo === 'modulo');
-  const invs = equipData.filter(e => e.tipo === 'inversor');
+  const mods = equipData.filter(e => e.tipo === 'modulo').sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'));
+  const invs = equipData.filter(e => e.tipo === 'inversor').sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'));
   document.getElementById('mk-modulo').innerHTML = '<option value="">-- Selecionar módulo --</option>' +
     mods.map(m => `<option value="${m.id}">${m.nome}</option>`).join('');
   document.getElementById('mk-inversor').innerHTML = '<option value="">-- Selecionar inversor --</option>' +
@@ -2301,17 +2301,24 @@ function duplicarKit(id) {
 // Contador de linhas de material para IDs únicos
 let _matKitIdx = 0;
 
-function addMaterialKit(mat=null) {
+async function addMaterialKit(mat=null) {
   const idx = ++_matKitIdx;
   const container = document.getElementById('kit-materiais');
   document.getElementById('kit-materiais-vazio').style.display = 'none';
 
-  // Montar options do select com todos equipamentos (exceto módulo e inversor)
-  const tiposValidos = ['cabo_cc','cabo_ca','conector','stringbox','disjuntor','quadro','estrutura','medicao','acessorio'];
-  const optsEquip = equipData
-    .filter(e => tiposValidos.includes(e.tipo))
+  // Montar options do select com todos equipamentos que não são módulo nem inversor
+  // (se equipData estiver vazio, buscar direto do banco)
+  let equips = equipData.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor');
+  if (!equips.length && equipData.length === 0) {
+    // fallback: carregar do banco se ainda não carregou
+    try {
+      const { data } = await db.from('equipamentos').select('*').order('nome');
+      if (data) { equipData = data; equips = data.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor'); }
+    } catch(e) {}
+  }
+  const optsEquip = equips
     .sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'))
-    .map(e => `<option value="${e.id}" ${mat?.equip_id===e.id?'selected':''}>${e._codigo||''} — ${e.nome}</option>`)
+    .map(e => `<option value="${e.id}" ${mat?.equip_id===e.id?'selected':''}>${e.nome}${e.preco_unit||e.preco ? ' — R$ '+(e.preco_unit||e.preco).toLocaleString('pt-BR',{minimumFractionDigits:2}) : ''}</option>`)
     .join('');
 
   const div = document.createElement('div');
