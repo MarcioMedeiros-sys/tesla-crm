@@ -77,7 +77,7 @@ tr:hover td{background:#1f1f1f}
 .calc-item label{color:#888;font-size:.75rem}
 .calc-item .val{color:#f5a623;font-size:1.1rem;font-weight:700}
 /* BUSCA */
-.barra-busca{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.barra-busca{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;align-items:center}
 .barra-busca input{flex:1;padding:10px 14px;background:#1a1a1a;border:1px solid #333;border-radius:8px;color:#fff;font-size:.9rem}
 /* MODAL */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.7);display:none;align-items:center;justify-content:center;z-index:1000}
@@ -197,15 +197,15 @@ td.td-aviso{color:#f5a623;font-weight:600}
     <div class="secao" id="sec-clientes">
       <div class="barra-busca">
         <input type="text" placeholder="Buscar cliente, cidade..." id="busca-cliente" oninput="filtrarClientes()">
-        <input type="text" placeholder="🔆 Filtrar por módulo..." id="busca-modulo" oninput="filtrarClientes()" style="max-width:200px">
-        <input type="text" placeholder="⚡ Filtrar por inversor..." id="busca-inversor" oninput="filtrarClientes()" style="max-width:200px">
+        <input type="text" placeholder="🔆 Módulo..." id="busca-modulo" oninput="filtrarClientes()" style="max-width:160px">
+        <input type="text" placeholder="⚡ Inversor..." id="busca-inversor" oninput="filtrarClientes()" style="max-width:160px">
         <button class="btn btn-primary" onclick="abrirModalCliente()">+ Novo</button>
         <label class="btn btn-secondary" style="cursor:pointer" title="Importar planilha Excel">
-          📥 Importar Excel
+          📥 Import
           <input type="file" accept=".xlsx,.xls" style="display:none" onchange="importarClientesExcel(this)">
         </label>
-        <button class="btn btn-secondary" onclick="exportarClientesExcel()" title="Exportar lista filtrada para Excel">📊 Excel</button>
-        <button class="btn btn-secondary" onclick="exportarClientesPDF()" title="Exportar lista filtrada para PDF">📄 PDF</button>
+        <button class="btn btn-secondary" onclick="exportarClientesExcel()" title="Exportar para Excel">📊 Excel</button>
+        <button class="btn btn-secondary" onclick="exportarClientesPDF()" title="Exportar para PDF">📄 PDF</button>
       </div>
       <div class="tabela-wrap">
         <table>
