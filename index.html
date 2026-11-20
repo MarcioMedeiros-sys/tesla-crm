@@ -265,7 +265,19 @@ td.td-aviso{color:#f5a623;font-weight:600}
         </div>
       </div>
 
-      <div class="form-card">
+      <!-- Resumo compacto do kit (visível só quando kit selecionado) -->
+      <div class="form-card" id="resumo-kit" style="display:none;border:1.5px solid #f5a623">
+        <h3>⚡ Sistema (Kit Aplicado)</h3>
+        <div id="resumo-kit-conteudo" style="color:#ccc;font-size:.95rem"></div>
+        <div class="calc-box" style="margin-top:12px">
+          <div class="calc-item"><label>Potência do Sistema</label><div class="val" id="ck-kwp">-- kWp</div></div>
+          <div class="calc-item"><label>Geração Mensal Est.</label><div class="val" id="ck-ger">-- kWh</div></div>
+          <div class="calc-item"><label>Economia Mensal Est.</label><div class="val" id="ck-eco">R$ --</div></div>
+        </div>
+        <div class="validacao-box" id="ck-mppt" style="margin-top:8px"></div>
+      </div>
+
+      <div class="form-card" id="card-dimensionamento">
         <h3>⚡ Dimensionamento do Sistema</h3>
         <div class="form-grid">
           <div class="form-group"><label>Consumo Médio (kWh/mês)</label><input type="number" id="p-cons" placeholder="ex: 400" oninput="calcAuto()" onchange="calcAuto()"></div>
@@ -1657,9 +1669,14 @@ function limparProposta() {
   document.getElementById('c-ger').textContent = '-- kWh';
   document.getElementById('c-eco').textContent = 'R$ --';
   document.getElementById('p-cliente-sel').value = '';
+  document.getElementById('p-kit').value = '';
+  document.getElementById('kit-info').innerHTML = '';
   const vbox = document.getElementById('validacao-mppt');
   vbox.className = 'validacao-box';
   vbox.innerHTML = '';
+  // Restaurar seção de dimensionamento
+  document.getElementById('card-dimensionamento').style.display = '';
+  document.getElementById('resumo-kit').style.display = 'none';
 }
 
 // ============================================================
@@ -2175,7 +2192,12 @@ function popularSelectKits() {
 
 function aplicarKit() {
   const id = document.getElementById('p-kit').value;
-  if (!id) { document.getElementById('kit-info').textContent = ''; return; }
+  if (!id) {
+    document.getElementById('kit-info').textContent = '';
+    document.getElementById('card-dimensionamento').style.display = '';
+    document.getElementById('resumo-kit').style.display = 'none';
+    return;
+  }
   const kit = todosKits.find(k => k.id === id);
   if (!kit) return;
   if (kit.modulo_id) document.getElementById('p-modulo').value = kit.modulo_id;
@@ -2200,14 +2222,38 @@ function aplicarKit() {
 
   calcAuto();
   // Recalcular kWp a partir dos módulos reais do kit (corrige bug de divergência)
+  let kwpReal = null;
   if (kit.modulo_id && kit.n_modulos) {
     const modObj = equipData.find(e => e.id === kit.modulo_id);
     if (modObj && modObj.potencia_w) {
-      const kwpReal = (kit.n_modulos * modObj.potencia_w) / 1000;
+      kwpReal = (kit.n_modulos * modObj.potencia_w) / 1000;
       document.getElementById('c-kwp').textContent = kwpReal.toFixed(2) + ' kWp';
     }
   }
   validarMPPT();
+
+  // Mostrar resumo compacto e ocultar dimensionamento
+  const modObj = kit.modulo_id ? equipData.find(e => e.id === kit.modulo_id) : null;
+  const invObj = kit.inversor_id ? equipData.find(e => e.id === kit.inversor_id) : null;
+  const irr = parseFloat(document.getElementById('p-irr').value) || 5.0;
+  const tarifa = parseFloat(document.getElementById('p-tarifa').value) || 0;
+  const kwp = kwpReal || (kit.potencia_kwp || 0);
+  const gerMensal = kwp * irr * 30 * 0.8;
+  const ecoMensal = tarifa > 0 ? gerMensal * tarifa : null;
+
+  document.getElementById('resumo-kit-conteudo').innerHTML =
+    `<strong style="color:#f5a623">${kit.nome}</strong><br>` +
+    `🔆 Módulo: ${modObj ? modObj.nome : kit.modulo_id || '-'} × ${kit.n_modulos || '-'} un.<br>` +
+    `⚡ Inversor: ${invObj ? invObj.nome : kit.inversor_id || '-'}`;
+
+  document.getElementById('ck-kwp').textContent = kwp ? kwp.toFixed(2) + ' kWp' : '-- kWp';
+  document.getElementById('ck-ger').textContent = gerMensal ? Math.round(gerMensal) + ' kWh' : '-- kWh';
+  document.getElementById('ck-eco').textContent = ecoMensal ? 'R$ ' + ecoMensal.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) : 'R$ --';
+  document.getElementById('ck-mppt').innerHTML = document.getElementById('validacao-mppt').innerHTML;
+
+  document.getElementById('card-dimensionamento').style.display = 'none';
+  document.getElementById('resumo-kit').style.display = '';
+
   toast('Kit "' + kit.nome + '" aplicado!');
 }
 
