@@ -355,6 +355,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
           <div class="form-group"><label>Validade (dias)</label><input type="number" id="p-valid" value="15"></div>
           <div class="form-group"><label>Vendedor</label><select id="p-vend" style="width:100%;padding:9px 12px;border:1px solid #d0dce8;border-radius:8px;font-size:.92rem;color:#1a2a3a;background:#fff"><option value="Rodrigo">Rodrigo</option><option value="Priscila">Priscila</option></select></div>
           <div class="form-group" style="grid-column:1/-1"><label>Observações</label><textarea id="p-obs" placeholder="Informações adicionais..."></textarea></div>
+          <input type="hidden" id="p-garantia">
         </div>
         <div class="btn-acoes">
           <button class="btn btn-primary" onclick="salvarProposta()">💾 Salvar Proposta</button>
@@ -788,6 +789,11 @@ td.td-aviso{color:#ff6606;font-weight:600}
       <div class="form-group">
         <label>Preço Sugerido (R$)</label>
         <input type="number" id="mk-preco" placeholder="0,00" step="0.01" oninput="recalcKitTotal()">
+      </div>
+      <div class="form-group" style="grid-column:1/-1">
+        <label>🛡️ Garantias (exibida na proposta)</label>
+        <textarea id="mk-garantia" rows="3" placeholder="Ex: Painéis: 10 anos fábrica | Inversor: 5 anos fábrica | Mão de obra: 1 ano + monitoramento remoto" style="width:100%;background:#0d0d1a;border:1px solid #2a3a5a;border-radius:7px;color:#ccc;padding:10px;font-size:.85rem;resize:vertical"></textarea>
+        <span style="font-size:.75rem;color:#666">Separe cada garantia com | (barra vertical). Será exibida em destaque na proposta.</span>
       </div>
     </div>
 
@@ -1531,6 +1537,7 @@ async function gerarProposta(id) {
     obs: p.observacoes || '',
     vendedor: p.nome_vendedor || 'Rodrigo',
     materiais: materiaisStr,
+    garantia: p.garantia || '',
   });
 
   // Abrir proposta_tesla.html com os dados na URL
@@ -1572,6 +1579,7 @@ async function enviarWhatsApp(id) {
     parc: p.parcelas || '',
     obs: p.observacoes || '',
     vendedor: p.nome_vendedor || 'Rodrigo',
+    garantia: p.garantia || '',
   });
 
   const base = window.location.origin + window.location.pathname.replace(/\/[^/]*$/, '/');
@@ -1694,6 +1702,7 @@ async function salvarProposta() {
     parcelas: parseInt(document.getElementById('p-parc').value) || null,
     validade_dias: parseInt(document.getElementById('p-valid').value) || 15,
     observacoes: document.getElementById('p-obs').value,
+    garantia: document.getElementById('p-garantia').value.trim() || null,
     nome_vendedor: document.getElementById('p-vend').value,
     status: 'rascunho'
   };
@@ -1720,7 +1729,7 @@ async function salvarProposta() {
 }
 
 function limparProposta() {
-  ['p-nome','p-tel','p-email','p-doc','p-cep','p-rua','p-num','p-bairro','p-cidade','p-estado','p-cons','p-tarifa','p-valor','p-desc','p-final','p-parc','p-obs'].forEach(id => {
+  ['p-nome','p-tel','p-email','p-doc','p-cep','p-rua','p-num','p-bairro','p-cidade','p-estado','p-cons','p-tarifa','p-valor','p-desc','p-final','p-parc','p-obs','p-garantia'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
@@ -2277,6 +2286,7 @@ function aplicarKit() {
     document.getElementById('ck-mods-string').value = '';
   }
   if (kit.preco_sugerido) document.getElementById('p-valor').value = kit.preco_sugerido;
+  document.getElementById('p-garantia').value = kit.garantia || '';
 
   // Exibir descrição + lista de materiais elétricos do kit
   let infoHtml = kit.descricao ? `<span style="color:#aaa">${kit.descricao}</span>` : '';
@@ -2355,6 +2365,7 @@ function abrirModalKit(k=null) {
   document.getElementById('mk-nmods').value = k?.n_modulos || '';
   document.getElementById('mk-kwp').value = k?.potencia_kwp || '';
   document.getElementById('mk-preco').value = k?.preco_sugerido || '';
+  document.getElementById('mk-garantia').value = k?.garantia || '';
   document.getElementById('kit-validacao').innerHTML = '';
 
   // Limpar e recarregar materiais elétricos
@@ -2480,6 +2491,7 @@ async function salvarKit() {
   const dados = {
     nome: document.getElementById('mk-nome').value.trim(),
     descricao: document.getElementById('mk-desc').value.trim() || null,
+    garantia: document.getElementById('mk-garantia').value.trim() || null,
     modulo_id: modId,
     inversor_id: invId,
     n_modulos: nMods,

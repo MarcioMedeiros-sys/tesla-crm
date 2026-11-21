@@ -144,6 +144,17 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
 .eq-nota{font-size:.72rem;color:#666;font-style:italic;margin-top:8px;padding:8px 12px;
   background:#f7f9fc;border-radius:6px;border-left:3px solid #ff6606}
 
+/* ----- SEÇÃO DE GARANTIAS ----- */
+.garantias-wrap{margin-top:20px;padding:16px 20px;background:#fff8f4;
+  border:1.5px solid #ff6606;border-radius:10px}
+.garantias-title{font-size:.72rem;font-weight:800;color:#ff6606;text-transform:uppercase;
+  letter-spacing:.08em;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.garantias-grid{display:grid;gap:8px}
+.gar-item{display:flex;align-items:flex-start;gap:10px;padding:10px 14px;
+  background:#fff;border-radius:7px;border:1px solid #ffe0cc}
+.gar-icon{font-size:1.2rem;line-height:1;flex-shrink:0;margin-top:1px}
+.gar-texto{font-size:.8rem;color:#333;line-height:1.4}
+
 /* ----- PAGAMENTO ----- */
 .pag-box{background:#1a1a2e;border-radius:10px;padding:20px 24px;margin-bottom:16px}
 .pag-box .pag-total{color:#ff6606;font-size:2rem;font-weight:900;margin-bottom:4px}
@@ -342,6 +353,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
         <input id="f-estr-desc" placeholder="Ex: Estrutura alumínio para telha cerâmica"></div>
       <div class="field"><label>Outros itens (cabo, string box, etc.)</label>
         <input id="f-outros" placeholder="Ex: String box 2E1S, 50m cabo solar 6mm²"></div>
+      <input type="hidden" id="f-garantia">
     </div>
   </div>
 
@@ -495,9 +507,9 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
         <thead><tr><th>Descrição do Item</th><th style="width:100px;text-align:center">Qtde</th></tr></thead>
         <tbody id="eq-tbody"></tbody>
       </table>
-      <div class="eq-nota" id="eq-garantia">
-        A instalação conta com garantia de 1 ano nos serviços, incluindo monitoramento remoto da usina.
-        Garantia de fábrica: painéis 10 anos / inversor 5 a 10 anos conforme fabricante.
+      <div id="eq-garantia-wrap" class="garantias-wrap">
+        <div class="garantias-title">🛡️ Garantias Incluídas</div>
+        <div class="garantias-grid" id="eq-garantia-grid"></div>
       </div>
 
       <!-- GRÁFICO OPCIONAL -->
@@ -653,6 +665,13 @@ function carregarDaURL(){
   if (materiaisParam) {
     const elOutros = document.getElementById('f-outros');
     if (elOutros) elOutros.value = materiaisParam;
+  }
+
+  // Garantias do kit → campo oculto
+  const garantiaParam = p.get('garantia') || '';
+  if (garantiaParam) {
+    const elGar = document.getElementById('f-garantia');
+    if (elGar) elGar.value = garantiaParam;
   }
 
   // Gera proposta automaticamente após preencher os campos
@@ -975,6 +994,36 @@ function gerar(){
         borderRadius:3}]
     },options:{responsive:true,plugins:{legend:{display:false}},
       scales:{y:{ticks:{callback:v=>'R$'+fmtN(v)}}}}});
+  }
+
+  // SEÇÃO DE GARANTIAS
+  const garantiaRaw = (document.getElementById('f-garantia') || {}).value || '';
+  const garantiaGrid = g('eq-garantia-grid');
+  const garantiaWrap = g('eq-garantia-wrap');
+  if (garantiaGrid) {
+    garantiaGrid.innerHTML = '';
+    if (garantiaRaw.trim()) {
+      // Garantia vinda do kit (separada por |)
+      const gar_icons = ['🔧','☀️','⚡','🔒','✅','🛠️'];
+      garantiaRaw.split('|').forEach((item, i) => {
+        item = item.trim();
+        if (!item) return;
+        const icon = gar_icons[i % gar_icons.length];
+        garantiaGrid.innerHTML += `<div class="gar-item"><span class="gar-icon">${icon}</span><span class="gar-texto">${item}</span></div>`;
+      });
+      if (garantiaWrap) garantiaWrap.style.display = '';
+    } else {
+      // Fallback: garantias padrão
+      const defaults = [
+        {icon:'🔧', txt:'Mão de obra: 1 ano de garantia + monitoramento remoto da usina'},
+        {icon:'☀️', txt:'Painéis fotovoltaicos: 10 anos de garantia de fábrica'},
+        {icon:'⚡', txt:'Inversor: 5 a 10 anos de garantia conforme fabricante'},
+      ];
+      defaults.forEach(d => {
+        garantiaGrid.innerHTML += `<div class="gar-item"><span class="gar-icon">${d.icon}</span><span class="gar-texto">${d.txt}</span></div>`;
+      });
+      if (garantiaWrap) garantiaWrap.style.display = '';
+    }
   }
 
   // MOSTRAR
