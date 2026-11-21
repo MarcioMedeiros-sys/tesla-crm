@@ -403,6 +403,10 @@ td.td-aviso{color:#ff6606;font-weight:600}
             <label>Temperatura máxima célula (°C)</label>
             <input type="number" id="sim-tmax" value="70" step="1" oninput="simAtualizar()" title="Temperatura máxima da célula fotovoltaica (usada para cálculo de Vmp mínima)">
           </div>
+          <div class="form-group">
+            <label>Irradiação média (h sol/dia)</label>
+            <input type="number" id="sim-irr" value="5.5" step="0.1" oninput="simAtualizar()" title="Horas de sol pleno por dia da região (HSP). Mossoró/RN ≈ 5.5">
+          </div>
         </div>
       </div>
 
@@ -2963,11 +2967,18 @@ function simCalcular() {
     ? simStrings[0].nMods * (mod.voc || 0) * (1 + (coefVoc/100) * (tMin - tStc))
     : 0;
 
+  // Estimativa de geração mensal
+  const simIrr = parseFloat(document.getElementById('sim-irr').value) || 5.5;
+  const gerMensal = potKwp > 0 ? Math.round(potKwp * simIrr * 30 * 0.80) : 0;
+  const gerAnual = gerMensal * 12;
+
   const cards = [
     { label: 'Total de módulos', val: totalMods + ' un', cls: '' },
     { label: 'Potência CC total', val: potKwp.toFixed(2) + ' kWp', cls: '' },
     { label: 'Potência AC inversor', val: potAcKw + ' kW', cls: '' },
     { label: 'Oversizing', val: oversizingFinal + '%', cls: parseFloat(oversizingFinal) > 50 ? 'erro' : parseFloat(oversizingFinal) > 30 ? 'aviso' : 'ok' },
+    { label: 'Geração mensal est.', val: gerMensal > 0 ? gerMensal.toLocaleString('pt-BR') + ' kWh/mês', cls: 'ok' },
+    { label: 'Geração anual est.', val: gerAnual > 0 ? gerAnual.toLocaleString('pt-BR') + ' kWh/ano', cls: '' },
     { label: 'Strings configuradas', val: simStrings.length + ' / ' + (simNMppt * simStrPorMppt), cls: '' },
     { label: 'Voc frio (1ª string)', val: vocFrioPrimStr.toFixed(0) + ' V', cls: vMax > 0 && vocFrioPrimStr > vMax ? 'erro' : 'ok' },
     { label: 'Vmáx inversor', val: vMax + ' V', cls: '' },
