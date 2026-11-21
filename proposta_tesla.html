@@ -636,11 +636,11 @@ function carregarDaURL(){
   const elObs = document.getElementById('f-obs');
   if (elObs && obs) elObs.value = obs;
 
-  // Materiais elétricos → campo "outros itens"
+  // Materiais elétricos → campo oculto (serão exibidos como linhas na tabela de escopo)
   const materiaisParam = p.get('materiais') || '';
   if (materiaisParam) {
     const elOutros = document.getElementById('f-outros');
-    if (elOutros) elOutros.value = materiaisParam.split('|').join(', ');
+    if (elOutros) elOutros.value = materiaisParam;
   }
 
   // Gera proposta automaticamente após preencher os campos
@@ -874,7 +874,17 @@ function gerar(){
     {desc:inversor,qtd:'1x'},
     {desc:estrDesc,qtd:'1x'},
   ];
-  if(outros) itens.push({desc:'  ↳ '+outros,qtd:''});
+  if(outros){
+    // Materiais elétricos: cada item separado por | vira uma linha
+    outros.split('|').forEach(mat => {
+      mat = mat.trim();
+      if(!mat) return;
+      // Separa "3x CABO SOLAR" em qtd e desc
+      const mQtd = mat.match(/^(\d+x)\s+(.+)$/i);
+      if(mQtd) itens.push({desc: mQtd[2], qtd: mQtd[1]});
+      else itens.push({desc: mat, qtd: ''});
+    });
+  }
   itens.forEach(it=>{
     const tr=document.createElement('tr');
     tr.innerHTML=`<td>${it.desc}</td><td style="text-align:center">${it.qtd}</td>`;
