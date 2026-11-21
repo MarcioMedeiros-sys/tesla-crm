@@ -2346,11 +2346,7 @@ async function addMaterialKit(mat=null) {
     if (error) console.error('Supabase error:', error);
     if (data) {
       equipData = data;
-      const tipos = [...new Set(data.map(e => e.tipo))];
-      console.log('Todos tipos no banco:', tipos);
-      console.log('Total equipamentos:', data.length);
       equips = data.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor');
-      console.log('Materiais filtrados:', equips.length, equips.map(e => e.tipo + ':' + e.nome));
     }
   } catch(e) { console.error('Erro ao carregar materiais:', e); }
   const optsEquip = equips
