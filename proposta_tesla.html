@@ -636,6 +636,13 @@ function carregarDaURL(){
   const elObs = document.getElementById('f-obs');
   if (elObs && obs) elObs.value = obs;
 
+  // Materiais elétricos → campo "outros itens"
+  const materiaisParam = p.get('materiais') || '';
+  if (materiaisParam) {
+    const elOutros = document.getElementById('f-outros');
+    if (elOutros) elOutros.value = materiaisParam.split('|').join(', ');
+  }
+
   // Gera proposta automaticamente após preencher os campos
   // Usa requestAnimationFrame duplo para garantir que os valores foram aplicados ao DOM
   requestAnimationFrame(() => requestAnimationFrame(() => gerar()));

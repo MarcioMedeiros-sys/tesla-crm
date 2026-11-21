@@ -1497,6 +1497,15 @@ async function gerarProposta(id) {
   const mod = p.equipamentos_modulo || {};
   const inv = p.equipamentos_inversor || {};
 
+  // Buscar materiais da proposta
+  const { data: mats } = await db.from('proposta_materiais')
+    .select('*,equipamentos(*)')
+    .eq('proposta_id', id);
+  const materiaisStr = (mats || [])
+    .filter(m => m.equipamentos)
+    .map(m => `${m.quantidade}x ${m.equipamentos.nome}`)
+    .join('|');
+
   // Montar parâmetros para a proposta
   const params = new URLSearchParams({
     nome: c.nome || '',
@@ -1521,6 +1530,7 @@ async function gerarProposta(id) {
     parc: p.parcelas || '',
     obs: p.observacoes || '',
     vendedor: p.nome_vendedor || 'Rodrigo',
+    materiais: materiaisStr,
   });
 
   // Abrir proposta_tesla.html com os dados na URL
@@ -1688,8 +1698,20 @@ async function salvarProposta() {
     status: 'rascunho'
   };
 
-  const { error } = await db.from('propostas').insert(dados);
+  const { data: propostaInserida, error } = await db.from('propostas').insert(dados).select('id').single();
   if (error) { toast('Erro ao salvar: ' + error.message, false); return; }
+
+  // Salvar materiais elétricos da proposta
+  const materiaisKit = getMateriaisKit();
+  if (propostaInserida && materiaisKit.length > 0) {
+    const matRows = materiaisKit.map(m => ({
+      proposta_id: propostaInserida.id,
+      equipamento_id: m.equip_id || null,
+      quantidade: m.qtd || 1,
+    }));
+    await db.from('proposta_materiais').insert(matRows);
+  }
+
   toast('Proposta ' + numero + ' salva!');
   limparProposta();
   carregarPropostas();
