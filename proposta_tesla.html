@@ -353,11 +353,23 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
       <div class="field" style="grid-column:span 2">
         <label>Parcelamento no Cartão</label>
         <select id="f-parc-cart" onchange="atualizarTaxaCart()">
-          <option value="6"  data-taxa="6.87">6× (taxa 6,87% a.m.)</option>
-          <option value="10" data-taxa="9.77" selected>10× (taxa 9,77% a.m.)</option>
-          <option value="12" data-taxa="11.08">12× (taxa 11,08% a.m.)</option>
-          <option value="16" data-taxa="14.43">16× (taxa 14,43% a.m.)</option>
-          <option value="18" data-taxa="15.66">18× (taxa 15,66% a.m.)</option>
+          <option value="2"  data-taxa="2.99">2× (taxa 2,99% total)</option>
+          <option value="3"  data-taxa="4.78">3× (taxa 4,78% total)</option>
+          <option value="4"  data-taxa="5.48">4× (taxa 5,48% total)</option>
+          <option value="5"  data-taxa="6.18">5× (taxa 6,18% total)</option>
+          <option value="6"  data-taxa="6.87">6× (taxa 6,87% total)</option>
+          <option value="7"  data-taxa="7.76">7× (taxa 7,76% total)</option>
+          <option value="8"  data-taxa="8.56">8× (taxa 8,56% total)</option>
+          <option value="9"  data-taxa="9.11">9× (taxa 9,11% total)</option>
+          <option value="10" data-taxa="9.77" selected>10× (taxa 9,77% total)</option>
+          <option value="11" data-taxa="10.43">11× (taxa 10,43% total)</option>
+          <option value="12" data-taxa="11.08">12× (taxa 11,08% total)</option>
+          <option value="13" data-taxa="12.53">13× (taxa 12,53% total)</option>
+          <option value="14" data-taxa="13.80">14× (taxa 13,80% total)</option>
+          <option value="15" data-taxa="14.44">15× (taxa 14,44% total)</option>
+          <option value="16" data-taxa="15.05">16× (taxa 15,05% total)</option>
+          <option value="17" data-taxa="15.66">17× (taxa 15,66% total)</option>
+          <option value="18" data-taxa="16.27">18× (taxa 16,27% total)</option>
         </select>
         <input type="hidden" id="f-taxa-cart" value="9.77">
       </div>
@@ -823,7 +835,8 @@ function gerar(){
   const econMensal=gerada*tarifa;
   const contaSolar=Math.max(contaAtual-econMensal,30);
   const valorAV=descAV>0?valor*(1-descAV/100):valor;
-  const parcCartVal=calcParcela(valor,taxaCart,parcCart);
+  // Cartão: taxa é percentual total sobre o valor (ex: 9.77% total em 10x)
+  const parcCartVal = valor * (1 + taxaCart/100) / parcCart;
   const parcFinVal=calcParcela(valor,taxaFin,parcFin);
   const payback=econMensal>0?Math.ceil(valor/econMensal):0;
   const econ1=econMensal*12;
@@ -868,11 +881,11 @@ function gerar(){
   }
   const qtdMods = nModsReal > 0 ? nModsReal+'x' : '';
   // Remove prefixo "NNx " do texto do módulo para não duplicar
-  const moduloDesc = modulo.replace(/^\d+\s*x\s*/i, '');
+  const moduloDesc = modulo.replace(/^\d+\s*x\s*/i, '').replace(/_/g, ' ');
   const itens=[
     {desc:moduloDesc,qtd:qtdMods},
-    {desc:inversor,qtd:'1x'},
-    {desc:estrDesc,qtd:'1x'},
+    {desc:inversor.replace(/_/g,' '),qtd:'1x'},
+    {desc:estrDesc.replace(/_/g,' '),qtd:'1x'},
   ];
   if(outros){
     // Materiais elétricos: cada item separado por | vira uma linha
@@ -895,7 +908,7 @@ function gerar(){
   sv('r-valor','R$ '+fmt(valor));
   sv('po-avista',descAV>0?'R$ '+fmt(valorAV):'R$ '+fmt(valor));
   sv('po-cart',`${parcCart}× R$ ${fmt(parcCartVal)}`);
-  sv('po-cart-desc',`Taxa ${taxaCart}% a.m. — Total R$ ${fmt(parcCartVal*parcCart)}`);
+  sv('po-cart-desc',`Acréscimo ${taxaCart}% — Total R$ ${fmt(parcCartVal*parcCart)}`);
   sv('po-fin',`${parcFin}× R$ ${fmt(parcFinVal)}`);
   sv('po-fin-desc',`Taxa ${taxaFin}% a.m. — Total R$ ${fmt(parcFinVal*parcFin)}`);
 
