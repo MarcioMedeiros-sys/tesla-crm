@@ -2327,6 +2327,14 @@ function aplicarKit() {
   document.getElementById('card-dimensionamento').style.display = 'none';
   document.getElementById('resumo-kit').style.display = '';
 
+  // Carregar materiais elétricos do kit nos campos da proposta
+  const contMat = document.getElementById('kit-materiais');
+  contMat.innerHTML = '';
+  _matKitIdx = 0;
+  document.getElementById('kit-materiais-vazio').style.display = 'block';
+  const matsKit = kit.materiais_eletricos || [];
+  matsKit.forEach(m => addMaterialKit(m));
+
   toast('Kit "' + kit.nome + '" aplicado!');
 }
 
