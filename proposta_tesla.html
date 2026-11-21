@@ -363,7 +363,7 @@ input[type=checkbox]{width:18px;height:18px;accent-color:#ff6606;cursor:pointer}
       </div>
       <div class="field"><label>Nº parcelas financiamento</label><input id="f-parc-fin" type="number" placeholder="Ex: 60"></div>
       <div class="field"><label>Taxa financiamento (% a.m.)</label><input id="f-taxa-fin" type="number" step="0.01" placeholder="Ex: 0.99"></div>
-      <div class="field"><label>Prazo de instalação</label><input id="f-prazo" placeholder="Ex: 30 dias após aprovação"></div>
+      <div class="field"><label>Prazo de instalação</label><input id="f-prazo" placeholder="Ex: 60 dias após aprovação"></div>
       <div class="field"><label>Validade da proposta</label><input id="f-validade" placeholder="Ex: 15 dias"></div>
       <div class="field"><label>Número da proposta</label><input id="f-num" placeholder="Ex: 2026-001"></div>
     </div>
@@ -620,7 +620,7 @@ function carregarDaURL(){
   set('f-valor',   p.get('valor'));
   set('f-num',     p.get('num'));
   set('f-validade',p.get('validade'));
-  set('f-prazo',   p.get('prazo') || '30 dias após aprovação');
+  set('f-prazo',   p.get('prazo') || '60 dias após aprovação');
 
   // Forma de pagamento → parcelas financiamento
   const pgto = p.get('pgto') || '';
@@ -813,7 +813,7 @@ function gerar(){
   const taxaCart=parseFloat(g('f-taxa-cart').value)||9.77;
   const parcFin=parseInt(g('f-parc-fin').value)||60;
   const taxaFin=parseFloat(g('f-taxa-fin').value)||0.99;
-  const prazo=g('f-prazo').value||'30 dias após aprovação do projeto';
+  const prazo=g('f-prazo').value||'60 dias após aprovação do projeto';
   const validade=(g('f-validade').value||'15').replace(/\s*dias/i,'').trim()+' dias';
   const numProp=g('f-num').value||new Date().getFullYear()+'-'+(Math.floor(Math.random()*900)+100);
 
@@ -1271,7 +1271,7 @@ setTimeout(carregarSelectsDoCSV, 500);
     set('f-valor', p.get('valor'));
     set('f-num', p.get('num'));
     set('f-validade', p.get('validade'));
-    set('f-prazo', '30 dias após aprovação');
+    set('f-prazo', '60 dias após aprovação');
     // Formas de pagamento
     const pgto = p.get('pgto') || '';
     const parc = p.get('parc') || '';
