@@ -264,10 +264,10 @@ td.td-aviso{color:#ff6606;font-weight:600}
     <div class="secao" id="sec-nova-proposta">
 
       <!-- ATALHO: USAR KIT PRONTO -->
-      <div class="form-card" style="border-color:#f5a62355;background:#111">
+      <div class="form-card" style="border-color:#ff660633;background:#fff8f4">
         <h3>📦 Usar Kit Pronto <span style="color:#666;font-size:.8rem;font-weight:400">(opcional — preenche módulo, inversor e qtd automaticamente)</span></h3>
         <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap">
-          <select id="p-kit" onchange="aplicarKit()" style="flex:1;min-width:220px;padding:10px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.9rem">
+          <select id="p-kit" onchange="aplicarKit()" style="flex:1;min-width:220px;padding:10px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.9rem">
             <option value="">-- Selecionar um kit salvo --</option>
           </select>
           <span id="kit-info" style="color:#888;font-size:.85rem"></span>
@@ -504,13 +504,13 @@ td.td-aviso{color:#ff6606;font-weight:600}
           <button class="btn btn-secondary btn-sm" onclick="inserirVar('{kwp}')">⚡ {kwp}</button>
           <button class="btn btn-secondary btn-sm" onclick="inserirVar('{data_instalacao}')">📅 {data_instalacao}</button>
         </div>
-        <textarea id="camp-msg" rows="6" style="width:100%;padding:12px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.92rem;resize:vertical;font-family:inherit"
+        <textarea id="camp-msg" rows="6" style="width:100%;padding:12px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.92rem;resize:vertical;font-family:inherit"
           placeholder="Digite sua mensagem aqui...&#10;&#10;Use as variáveis acima para personalizar. Ex:&#10;Olá {nome}! Temos uma novidade especial para você 🌞"></textarea>
 
         <!-- Prévia -->
         <div style="margin-top:10px">
           <span style="color:#888;font-size:.8rem">📋 Prévia (primeiro cliente selecionado):</span>
-          <div id="camp-previa" style="margin-top:6px;padding:12px;background:#111;border-radius:8px;border:1px solid #333;color:#ddd;font-size:.88rem;white-space:pre-wrap;min-height:48px;line-height:1.5"></div>
+          <div id="camp-previa" style="margin-top:6px;padding:12px;background:#f4f7fa;border-radius:8px;border:1px solid #d0dce8;color:#2a3a4a;font-size:.88rem;white-space:pre-wrap;min-height:48px;line-height:1.5"></div>
         </div>
 
         <!-- Anexo de mídia -->
@@ -530,7 +530,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
         <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px">
           <h3 style="margin:0">👥 Selecionar Clientes</h3>
           <input type="text" id="camp-busca" placeholder="🔍 Buscar cliente..." oninput="filtrarCampanha()"
-            style="flex:1;min-width:180px;padding:8px 12px;background:#0d0d1a;border:1px solid #333;border-radius:7px;color:#fff;font-size:.88rem">
+            style="flex:1;min-width:180px;padding:8px 12px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.88rem">
           <button class="btn btn-secondary btn-sm" onclick="selecionarTodosCamp(true)">✅ Todos</button>
           <button class="btn btn-secondary btn-sm" onclick="selecionarTodosCamp(false)">⬜ Nenhum</button>
           <span id="camp-contagem" style="color:#f5a623;font-size:.88rem;font-weight:700">0 selecionados</span>
@@ -559,7 +559,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
       </div>
 
       <!-- Painel de envio (aparece durante a campanha) -->
-      <div id="camp-painel-envio" style="display:none;margin-top:16px;background:#111;border:2px solid #25D366;border-radius:12px;padding:24px;text-align:center">
+      <div id="camp-painel-envio" style="display:none;margin-top:16px;background:#f0fdf4;border:2px solid #25D366;border-radius:12px;padding:24px;text-align:center">
         <div style="color:#25D366;font-size:1.1rem;font-weight:700;margin-bottom:6px">💬 Enviando para: <span id="camp-env-nome" style="color:#fff"></span></div>
         <div style="color:#888;font-size:.85rem;margin-bottom:16px">Cliente <span id="camp-env-idx"></span> de <span id="camp-env-total"></span></div>
         <div style="display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
@@ -813,7 +813,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
 <div class="modal-bg" id="modal-import">
   <div class="modal" style="max-width:560px">
     <h3>📥 Importando do Excel...</h3>
-    <div id="import-log" style="background:#0d0d1a;border-radius:8px;padding:16px;min-height:120px;font-size:.82rem;color:#aaa;font-family:monospace;max-height:300px;overflow-y:auto"></div>
+    <div id="import-log" style="background:#f4f7fa;border-radius:8px;padding:16px;min-height:120px;font-size:.82rem;color:#4a6a8a;font-family:monospace;max-height:300px;overflow-y:auto;border:1px solid #d0dce8"></div>
     <div class="modal-btns">
       <button class="btn btn-primary" id="btn-fechar-import" style="display:none" onclick="fecharModal('modal-import');carregarEquipamentos();popularSelectsEquip()">✅ Concluído — Fechar</button>
     </div>
@@ -2339,15 +2339,16 @@ async function addMaterialKit(mat=null) {
   const container = document.getElementById('kit-materiais');
   document.getElementById('kit-materiais-vazio').style.display = 'none';
 
-  // Montar options do select com todos equipamentos que não são módulo nem inversor
-  // (se equipData estiver vazio, buscar direto do banco)
+  // Montar options — sempre busca do banco para garantir lista atualizada
   let equips = equipData.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor');
-  if (!equips.length && equipData.length === 0) {
-    // fallback: carregar do banco se ainda não carregou
+  if (!equips.length) {
     try {
       const { data } = await db.from('equipamentos').select('*').order('nome');
-      if (data) { equipData = data; equips = data.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor'); }
-    } catch(e) {}
+      if (data) {
+        equipData = data;
+        equips = data.filter(e => e.tipo !== 'modulo' && e.tipo !== 'inversor');
+      }
+    } catch(e) { console.error('Erro ao carregar materiais:', e); }
   }
   const optsEquip = equips
     .sort((a,b) => a.nome.localeCompare(b.nome,'pt-BR'))
@@ -2356,15 +2357,15 @@ async function addMaterialKit(mat=null) {
 
   const div = document.createElement('div');
   div.id = `mat-kit-${idx}`;
-  div.style.cssText = 'display:grid;grid-template-columns:1fr 70px 110px 28px;gap:6px;align-items:center';
+  div.style.cssText = 'display:grid;grid-template-columns:1fr 70px 110px 32px;gap:6px;align-items:center;margin-bottom:6px';
   div.innerHTML = `
-    <select style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem" onchange="recalcKitTotal()">
+    <select style="padding:8px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.82rem" onchange="recalcKitTotal()">
       <option value="">-- Selecionar material --</option>
       ${optsEquip}
     </select>
-    <input type="number" placeholder="Qtd" value="${mat?.qtd||1}" min="1" style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem;text-align:center" oninput="recalcKitTotal()">
-    <input type="number" placeholder="Preço unit." value="${mat?.preco_unit||''}" step="0.01" style="padding:7px;background:#0d0d1a;border:1px solid #333;border-radius:6px;color:#fff;font-size:.82rem" oninput="recalcKitTotal()">
-    <button onclick="document.getElementById('mat-kit-${idx}').remove();recalcKitTotal()" style="background:#3a0d0d;border:1px solid #e74c3c;border-radius:6px;color:#e74c3c;cursor:pointer;padding:6px 8px;font-size:.85rem" title="Remover">✕</button>
+    <input type="number" placeholder="Qtd" value="${mat?.qtd||1}" min="1" style="padding:8px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.82rem;text-align:center" oninput="recalcKitTotal()">
+    <input type="number" placeholder="Preço unit." value="${mat?.preco_unit||''}" step="0.01" style="padding:8px;background:#f4f7fa;border:1px solid #d0dce8;border-radius:7px;color:#1a2a3a;font-size:.82rem" oninput="recalcKitTotal()">
+    <button onclick="document.getElementById('mat-kit-${idx}').remove();recalcKitTotal()" style="background:#fde8e8;border:1px solid #e74c3c;border-radius:7px;color:#e74c3c;cursor:pointer;padding:6px 8px;font-size:.85rem;font-weight:700" title="Remover">✕</button>
   `;
   container.appendChild(div);
   recalcKitTotal();
