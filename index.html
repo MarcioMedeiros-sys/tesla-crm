@@ -317,6 +317,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
           <div class="form-group"><label>Módulo Fotovoltaico</label><select id="p-modulo" onchange="calcAuto()"><option value="">-- Selecionar módulo --</option></select></div>
           <div class="form-group"><label>Inversor</label><select id="p-inversor" onchange="validarMPPT()"><option value="">-- Selecionar inversor --</option></select></div>
           <div class="form-group"><label>Qtd Módulos (calculado)</label><input type="number" id="p-nmods" placeholder="automático" oninput="validarMPPT()"></div>
+          <div class="form-group"><label>Módulos por String</label><input type="number" id="p-mods-string" placeholder="ex: 15" oninput="validarMPPT()"></div>
         </div>
         <div class="calc-box">
           <div class="calc-item"><label>Potência do Sistema</label><div class="val" id="c-kwp">-- kWp</div></div>
@@ -1666,6 +1667,7 @@ async function salvarProposta() {
     potencia_kwp: potenciaKwp,
     geracao_mensal: parseFloat(document.getElementById('c-ger').textContent) || null,
     n_modulos: nModulos,
+    modulos_por_string: parseInt(document.getElementById('p-mods-string').value) || null,
     modulo_id: moduloId,
     inversor_id: inversorId,
     valor_sistema: valor,
@@ -1698,6 +1700,7 @@ function limparProposta() {
   document.getElementById('p-modulo').value = '';
   document.getElementById('p-inversor').value = '';
   document.getElementById('p-nmods').value = '';
+  document.getElementById('p-mods-string').value = '';
   document.getElementById('c-kwp').textContent = '-- kWp';
   document.getElementById('c-ger').textContent = '-- kWh';
   document.getElementById('c-eco').textContent = 'R$ --';
@@ -1751,6 +1754,7 @@ function validarMPPT() {
   const modId = document.getElementById('p-modulo').value;
   const invId = document.getElementById('p-inversor').value;
   const nMods = parseInt(document.getElementById('p-nmods').value) || 0;
+  const modsString = parseInt(document.getElementById('p-mods-string').value) || nMods;
 
   if (!modId || !invId || !nMods) {
     box.className = 'validacao-box';
@@ -1767,8 +1771,8 @@ function validarMPPT() {
   const infos = [];
 
   // === TENSÃO DA STRING ===
-  const vString = nMods * (mod.vmp || 0);
-  const vStringOc = nMods * (mod.voc || 0);
+  const vString = modsString * (mod.vmp || 0);
+  const vStringOc = modsString * (mod.voc || 0);
   const vStart = inv.v_start || 0;
   const vMax = inv.v_max_entrada || 0;
   const imaxMppt = inv.i_max_mppt || 0;
@@ -2236,6 +2240,7 @@ function aplicarKit() {
   if (kit.modulo_id) document.getElementById('p-modulo').value = kit.modulo_id;
   if (kit.inversor_id) document.getElementById('p-inversor').value = kit.inversor_id;
   if (kit.n_modulos) document.getElementById('p-nmods').value = kit.n_modulos;
+  if (kit.modulos_por_string) document.getElementById('p-mods-string').value = kit.modulos_por_string;
   if (kit.preco_sugerido) document.getElementById('p-valor').value = kit.preco_sugerido;
 
   // Exibir descrição + lista de materiais elétricos do kit
