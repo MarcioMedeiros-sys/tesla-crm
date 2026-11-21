@@ -313,7 +313,7 @@ td.td-aviso{color:#ff6606;font-weight:600}
         <div class="form-grid">
           <div class="form-group"><label>Consumo Médio (kWh/mês)</label><input type="number" id="p-cons" placeholder="ex: 400" oninput="calcAuto()" onchange="calcAuto()"></div>
           <div class="form-group"><label>Tarifa (R$/kWh)</label><input type="number" id="p-tarifa" placeholder="ex: 0.85" step="0.01" oninput="calcAuto()" onchange="calcAuto()"></div>
-          <div class="form-group"><label>Irradiação (h sol/dia)</label><input type="number" id="p-irr" value="5.0" step="0.1" oninput="calcAuto()" onchange="calcAuto()"></div>
+          <div class="form-group"><label>Irradiação (h sol/dia)</label><input type="number" id="p-irr" value="5.9" step="0.1" oninput="calcAuto()" onchange="calcAuto()"></div>
           <div class="form-group"><label>Módulo Fotovoltaico</label><select id="p-modulo" onchange="calcAuto()"><option value="">-- Selecionar módulo --</option></select></div>
           <div class="form-group"><label>Inversor</label><select id="p-inversor" onchange="validarMPPT()"><option value="">-- Selecionar inversor --</option></select></div>
           <div class="form-group"><label>Qtd Módulos (calculado)</label><input type="number" id="p-nmods" placeholder="automático" oninput="validarMPPT()"></div>
@@ -1662,7 +1662,7 @@ async function salvarProposta() {
     cliente_id: clienteId,
     consumo_kwh: parseFloat(document.getElementById('p-cons').value) || null,
     tarifa: parseFloat(document.getElementById('p-tarifa').value) || null,
-    irradiacao: parseFloat(document.getElementById('p-irr').value) || 5,
+    irradiacao: parseFloat(document.getElementById('p-irr').value) || 5.9,
     potencia_kwp: potenciaKwp,
     geracao_mensal: parseFloat(document.getElementById('c-ger').textContent) || null,
     n_modulos: nModulos,
@@ -1693,7 +1693,7 @@ function limparProposta() {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  document.getElementById('p-irr').value = '5.0';
+  document.getElementById('p-irr').value = '5.9';
   document.getElementById('p-valid').value = '15';
   document.getElementById('p-modulo').value = '';
   document.getElementById('p-inversor').value = '';
@@ -1719,7 +1719,7 @@ let equipData = [];
 
 function calcAuto() {
   const cons = parseFloat(document.getElementById('p-cons').value);
-  const irr = parseFloat(document.getElementById('p-irr').value) || 5;
+  const irr = parseFloat(document.getElementById('p-irr').value) || 5.9;
   const tarifa = parseFloat(document.getElementById('p-tarifa').value) || 0;
   const modId = document.getElementById('p-modulo').value;
 
@@ -2166,7 +2166,7 @@ function getIrradiacao(cidade, uf) {
   for (const [k,v] of Object.entries(porCidade)) {
     if (cidadeLower.includes(k.normalize('NFD').replace(/[̀-ͯ]/g,''))) return v;
   }
-  return porUF[uf] || 5.0;
+  return porUF[uf] || 5.9;
 }
 
 // ============================================================
@@ -2268,7 +2268,7 @@ function aplicarKit() {
   // Mostrar resumo compacto e ocultar dimensionamento
   const modObj = kit.modulo_id ? equipData.find(e => e.id === kit.modulo_id) : null;
   const invObj = kit.inversor_id ? equipData.find(e => e.id === kit.inversor_id) : null;
-  const irr = parseFloat(document.getElementById('p-irr').value) || 5.0;
+  const irr = parseFloat(document.getElementById('p-irr').value) || 5.9;
   const tarifa = parseFloat(document.getElementById('p-tarifa').value) || 0;
   const kwp = kwpReal || (kit.potencia_kwp || 0);
   const gerMensal = kwp * irr * 30 * 0.8;
