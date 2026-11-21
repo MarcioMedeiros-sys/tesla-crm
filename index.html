@@ -305,6 +305,13 @@ td.td-aviso{color:#ff6606;font-weight:600}
           <div class="calc-item"><label>Geração Mensal Est.</label><div class="val" id="ck-ger">-- kWh</div></div>
           <div class="calc-item"><label>Economia Mensal Est.</label><div class="val" id="ck-eco">R$ --</div></div>
         </div>
+        <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <label style="font-size:.85rem;color:#6a8aaa;min-width:140px">Módulos por String:</label>
+          <input type="number" id="ck-mods-string" placeholder="ex: 15" min="1"
+            style="width:80px;padding:6px 8px;border:1px solid #d0dce8;border-radius:6px;font-size:.88rem;color:#1a2a3a;text-align:center"
+            oninput="document.getElementById('p-mods-string').value=this.value; validarMPPT(); document.getElementById('ck-mppt').innerHTML=document.getElementById('validacao-mppt').innerHTML;">
+          <span style="font-size:.8rem;color:#90a8be">— necessário para validação elétrica</span>
+        </div>
         <div class="validacao-box" id="ck-mppt" style="margin-top:8px"></div>
       </div>
 
@@ -1701,6 +1708,7 @@ function limparProposta() {
   document.getElementById('p-inversor').value = '';
   document.getElementById('p-nmods').value = '';
   document.getElementById('p-mods-string').value = '';
+  document.getElementById('ck-mods-string').value = '';
   document.getElementById('c-kwp').textContent = '-- kWp';
   document.getElementById('c-ger').textContent = '-- kWh';
   document.getElementById('c-eco').textContent = 'R$ --';
@@ -2240,7 +2248,12 @@ function aplicarKit() {
   if (kit.modulo_id) document.getElementById('p-modulo').value = kit.modulo_id;
   if (kit.inversor_id) document.getElementById('p-inversor').value = kit.inversor_id;
   if (kit.n_modulos) document.getElementById('p-nmods').value = kit.n_modulos;
-  if (kit.modulos_por_string) document.getElementById('p-mods-string').value = kit.modulos_por_string;
+  if (kit.modulos_por_string) {
+    document.getElementById('p-mods-string').value = kit.modulos_por_string;
+    document.getElementById('ck-mods-string').value = kit.modulos_por_string;
+  } else {
+    document.getElementById('ck-mods-string').value = '';
+  }
   if (kit.preco_sugerido) document.getElementById('p-valor').value = kit.preco_sugerido;
 
   // Exibir descrição + lista de materiais elétricos do kit
